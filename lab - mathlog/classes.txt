@@ -1,50 +1,56 @@
-     1	antelope
-     2	grizzly+bear
-     3	killer+whale
-     4	beaver
-     5	dalmatian
-     6	persian+cat
-     7	horse
-     8	german+shepherd
-     9	blue+whale
-    10	siamese+cat
-    11	skunk
-    12	mole
-    13	tiger
-    14	hippopotamus
-    15	leopard
-    16	moose
-    17	spider+monkey
-    18	humpback+whale
-    19	elephant
-    20	gorilla
-    21	ox
-    22	fox
-    23	sheep
-    24	seal
-    25	chimpanzee
-    26	hamster
-    27	squirrel
-    28	rhinoceros
-    29	rabbit
-    30	bat
-    31	giraffe
-    32	wolf
-    33	chihuahua
-    34	rat
-    35	weasel
-    36	otter
-    37	buffalo
-    38	zebra
-    39	giant+panda
-    40	deer
-    41	bobcat
-    42	pig
-    43	lion
-    44	mouse
-    45	polar+bear
-    46	collie
-    47	walrus
-    48	raccoon
-    49	cow
-    50	dolphin
+# 1. Алгоритм на естественном языке:
+#    - Создаем список словарей, где каждый словарь содержит информацию о книге: название, автор, год.
+#    - Выводим список книг на экран в виде нумерованного списка.
+#    - Запрашиваем у пользователя критерий сортировки (по названию, автору или году).
+#    - В зависимости от выбора пользователя сортируем список с помощью метода sort() или функции sorted().
+#    - Выводим отсортированный список книг.
+
+# 2. Программа на Python:
+
+# Создаем список из не менее 10 книг
+books = [
+    {"title": "Война и мир", "author": "Лев Толстой", "year": 1869},
+    {"title": "Преступление и наказание", "author": "Фёдор Достоевский", "year": 1866},
+    {"title": "Мастер и Маргарита", "author": "Михаил Булгаков", "year": 1967},
+    {"title": "Анна Каренина", "author": "Лев Толстой", "year": 1877},
+    {"title": "Евгений Онегин", "author": "Александр Пушкин", "year": 1833},
+    {"title": "Мёртвые души", "author": "Николай Гоголь", "year": 1842},
+    {"title": "Отцы и дети", "author": "Иван Тургенев", "year": 1862},
+    {"title": "Герой нашего времени", "author": "Михаил Лермонтов", "year": 1840},
+    {"title": "Тихий Дон", "author": "Михаил Шолохов", "year": 1940},
+    {"title": "Собачье сердце", "author": "Михаил Булгаков", "year": 1925}
+]
+
+# Функция для вывода списка книг
+def print_books(book_list):
+    for i, book in enumerate(book_list, 1):
+        print(f"{i}. {book['title']} - {book['author']} ({book['year']})")
+
+# Выводим исходный список
+print("Исходный список книг:")
+print_books(books)
+print()
+
+# Запрашиваем у пользователя критерий сортировки
+print("Выберите критерий сортировки:")
+print("1 - по названию")
+print("2 - по автору")
+print("3 - по году издания")
+
+choice = input("Введите номер критерия (1/2/3): ")
+
+# Сортировка по выбору пользователя
+if choice == "1":
+    books.sort(key=lambda book: book["title"])
+    print("\nСписок книг, отсортированный по названию:")
+elif choice == "2":
+    books.sort(key=lambda book: book["author"])
+    print("\nСписок книг, отсортированный по автору:")
+elif choice == "3":
+    books.sort(key=lambda book: book["year"])
+    print("\nСписок книг, отсортированный по году издания:")
+else:
+    print("\nНеверный выбор. Будет выведен исходный список.")
+
+# Выводим отсортированный список
+print_books(books)
