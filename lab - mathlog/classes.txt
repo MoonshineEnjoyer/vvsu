@@ -35,3 +35,41 @@ while True:
     if choice != 'да':
         print("До свидания!")
         break
+
+# 1. Создание каталога (список словарей)
+catalog = [
+    {"title": "Война и мир", "author": "Лев Толстой", "year": 1869, "genre": "Роман"},
+    {"title": "Анна Каренина", "author": "Лев Толстой", "year": 1877, "genre": "Роман"},
+    {"title": "Преступление и наказание", "author": "Федор Достоевский", "year": 1866, "genre": "Роман"},
+    {"title": "Идиот", "author": "Федор Достоевский", "year": 1868, "genre": "Роман"},
+    {"title": "Мастер и Маргарита", "author": "Михаил Булгаков", "year": 1967, "genre": "Мистика"},
+    {"title": "Собачье сердце", "author": "Михаил Булгаков", "year": 1925, "genre": "Повесть"},
+    {"title": "Евгений Онегин", "author": "Александр Пушкин", "year": 1833, "genre": "Роман в стихах"},
+    {"title": "Капитанская дочка", "author": "Александр Пушкин", "year": 1836, "genre": "Повесть"},
+    {"title": "Мертвые души", "author": "Николай Гоголь", "year": 1842, "genre": "Поэма"},
+    {"title": "Ревизор", "author": "Николай Гоголь", "year": 1836, "genre": "Комедия"}
+]
+
+while True:
+    # 2. Запрос имени автора
+    search_author = input("\nВведите имя автора для поиска: ").strip().lower()
+    
+    # 3. Поиск книг (без учета регистра)
+    results = []
+    for book in catalog:
+        if search_author == book["author"].lower():
+            results.append(book)
+            
+    # 4. Вывод результатов
+    if results:
+        print(f"\nНайдено книг: {len(results)}")
+        for i, book in enumerate(results, 1):
+            print(f"{i}. '{book['title']}', Автор: {book['author']}, Год: {book['year']}, Жанр: {book['genre']}")
+    else:
+        print("❌ Книги автора не найдены")
+
+    # 5. Предложение продолжить
+    choice = input("\nХотите повторить поиск? (да/нет): ").strip().lower()
+    if choice != 'да':
+        print("Программа завершена. Всего доброго!")
+        break
