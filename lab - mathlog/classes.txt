@@ -73,3 +73,50 @@ while True:
     if choice != 'да':
         print("Программа завершена. Всего доброго!")
         break
+
+
+class Car:
+    # Общий атрибут для всех объектов класса
+    wheels = 4
+
+    def __init__(self, brand, model, year, color, mileage, fuel_level):
+        # 6 атрибутов, описывающих объект
+        self.brand = brand
+        self.model = model
+        self.year = year
+        self.color = color
+        self.mileage = mileage
+        self.fuel_level = fuel_level
+
+    # 1. Метод возвращает строку с краткой инфой
+    def get_info(self):
+        return f"{self.brand} {self.model} ({self.year})"
+
+    # 2. Метод возвращает полный статус
+    def get_status(self):
+        return f"Цвет: {self.color}, Пробег: {self.mileage}км, Топливо: {self.fuel_level}%"
+
+    # 3. Метод меняет значение атрибута (пробег)
+    def drive(self, distance):
+        self.mileage += distance
+        return f"Проехали {distance} км. Новый пробег: {self.mileage}"
+
+    # 4. Метод меняет значение атрибута (заправка)
+    def refuel(self, amount):
+        self.fuel_level = min(100, self.fuel_level + amount)
+        return f"Заправились на {amount}%. Уровень топлива: {self.fuel_level}%"
+
+# Создаем 2 экземпляра класса с разными значениями
+car1 = Car("Toyota", "Camry", 2021, "Черный", 45000, 60)
+car2 = Car("Tesla", "Model 3", 2023, "Белый", 5000, 100)
+
+# Добавляем уникальный атрибут только для первого экземпляра (не описан в классе)
+car1.owner_name = "Алексей"
+
+# Вывод информации
+print(f"Авто 1: {car1.get_info()} | {car1.get_status()} | Владелец: {car1.owner_name}")
+print(f"Авто 2: {car2.get_info()} | {car2.get_status()}")
+
+# Демонстрация работы методов
+print(car1.drive(150))
+print(car2.refuel(10))
