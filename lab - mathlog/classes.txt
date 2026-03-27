@@ -300,3 +300,113 @@ print(
     " сек",
     sep="",
 )
+
+
+import time
+import random
+
+# 1. Базовая версия
+def bubble_sort_basic(arr):
+    n = len(arr)
+    for i in range(n):
+        for j in range(0, n - i - 1):
+            if arr[j] > arr[j + 1]:
+                arr[j], arr[j + 1] = arr[j + 1], arr[j]
+    return arr
+
+# 2. С флагом раннего выхода
+def bubble_sort_flag(arr):
+    n = len(arr)
+    for i in range(n):
+        swapped = False
+        for j in range(0, n - i - 1):
+            if arr[j] > arr[j + 1]:
+                arr[j], arr[j + 1] = arr[j + 1], arr[j]
+                swapped = True
+        if not swapped: # Если обменов не было — массив отсортирован
+            break
+    return arr
+
+# 3. С ограничением границы последнего обмена
+def bubble_sort_limit(arr):
+    n = len(arr)
+    while n > 1:
+        new_n = 0
+        for i in range(n - 1):
+            if arr[i] > arr[i + 1]:
+                arr[i], arr[i + 1] = arr[i + 1], arr[i]
+                new_n = i + 1 # Запоминаем последнее место обмена
+        n = new_n # Дальше этой границы всё уже отсортировано
+    return arr
+
+# Функция для тестирования
+def test_sorting():
+    n = 5000
+    test_cases = {
+        "Отсортированный": list(range(n)),
+        "Случайный": [random.randint(0, n) for _ in range(n)],
+        "Обратный": list(range(n, 0, -1))
+    }
+    
+    sorts = [
+        ("Базовая", bubble_sort_basic),
+        ("С флагом", bubble_sort_flag),
+        ("С границей", bubble_sort_limit)
+    ]
+
+    for case_name, data in test_cases.items():
+        print(f"\n--- Массив: {case_name} ---")
+        for sort_name, func in sorts:
+            arr_copy = data.copy()
+            start = time.perf_counter()
+            func(arr_copy)
+            end = time.perf_counter()
+            print(f"{sort_name:12}: {end - start:.4f} сек")
+
+test_sorting()
+
+
+
+
+
+import math
+
+# 1. Линейный поиск
+def linear_search(arr, target):
+    comparisons = 0
+    for i in range(len(arr)):
+        comparisons += 1
+        if arr[i] == target:
+            return True, comparisons
+    return False, comparisons
+
+# 2. Бинарный поиск (только для отсортированного массива!)
+def binary_search(arr, target):
+    comparisons = 0
+    low = 0
+    high = len(arr) - 1
+    
+    while low <= high:
+        comparisons += 1
+        mid = (low + high) // 2
+        if arr[mid] == target:
+            return True, comparisons
+        elif arr[mid] < target:
+            low = mid + 1
+        else:
+            high = mid - 1
+    return False, comparisons
+
+# Тестирование
+n = 100000
+arr = list(range(n)) # Отсортированный массив
+target = 99999 # Ищем элемент в самом конце
+
+found_l, comp_l = linear_search(arr, target)
+found_b, comp_b = binary_search(arr, target)
+
+print("\n--- Результаты поиска (n=100,000) ---")
+print(f"{'Алгоритм':<15} | {'Цель':<7} | {'Найден?':<8} | {'Сравнений':<10}")
+print("-" * 50)
+print(f"{'Линейный':<15} | {target:<7} | {str(found_l):<8} | {comp_l:<10}")
+print(f"{'Бинарный':<15} | {target:<7} | {str(found_b):<8} | {comp_b:<10}")
