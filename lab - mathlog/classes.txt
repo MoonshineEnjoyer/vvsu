@@ -410,3 +410,69 @@ print(f"{'Алгоритм':<15} | {'Цель':<7} | {'Найден?':<8} | {'С
 print("-" * 50)
 print(f"{'Линейный':<15} | {target:<7} | {str(found_l):<8} | {comp_l:<10}")
 print(f"{'Бинарный':<15} | {target:<7} | {str(found_b):<8} | {comp_b:<10}")
+
+
+
+
+
+
+
+class Node:
+    """Класс узла списка"""
+    def __init__(self, data):
+        self.data = data
+        self.next = None
+
+class LinkedList:
+    """Класс односвязного списка"""
+    def __init__(self):
+        self.head = None
+
+    def add_first(self, data):
+        """Вставка в начало списка — O(1)"""
+        new_node = Node(data)
+        new_node.next = self.head
+        self.head = new_node
+
+    def print_list(self):
+        """Печать всех элементов — O(n)"""
+        current = self.head
+        result = []
+        while current:
+            result.append(str(current.data))
+            current = current.next
+        print(" -> ".join(result) + " -> None")
+
+    def length(self):
+        """Возврат количества элементов — O(n)"""
+        count = 0
+        current = self.head
+        while current:
+            count += 1
+            current = current.next
+        return count
+
+    def search(self, target):
+        """Поиск индекса элемента — O(n)"""
+        current = self.head
+        index = 0
+        while current:
+            if current.data == target:
+                return index
+            current = current.next
+            index += 1
+        return -1
+
+# --- Демонстрация работы ---
+ll = LinkedList()
+ll.add_first(30)
+ll.add_first(20)
+ll.add_first(15)
+ll.add_first(10)
+
+print("Текущий список:")
+ll.print_list()
+
+print(f"Поиск элемента 15: индекс {ll.search(15)}")
+print(f"Поиск элемента 99: индекс {ll.search(99)}")
+print(f"Длина списка: {ll.length()}")
