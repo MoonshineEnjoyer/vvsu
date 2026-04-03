@@ -476,3 +476,97 @@ ll.print_list()
 print(f"Поиск элемента 15: индекс {ll.search(15)}")
 print(f"Поиск элемента 99: индекс {ll.search(99)}")
 print(f"Длина списка: {ll.length()}")
+
+
+class Node:
+    def __init__(self, data):
+        self.data = data
+        self.next = None
+
+class LinkedList:
+    def __init__(self):
+        self.head = None
+
+    def add_first(self, data):
+        """Вставка в начало — O(1)"""
+        new_node = Node(data)
+        new_node.next = self.head
+        self.head = new_node
+
+    def add_last(self, data):
+        """Вставка в конец — O(n)"""
+        new_node = Node(data)
+        if not self.head:
+            self.head = new_node
+            return
+        
+        current = self.head
+        while current.next: # Идем до последнего узла
+            current = current.next
+        current.next = new_node
+
+    def insert_at(self, position, data):
+        """Вставка на позицию — O(n)"""
+        if position < 0:
+            raise ValueError("Позиция не может быть отрицательной")
+        
+        if position == 0:
+            self.add_first(data)
+            return
+
+        new_node = Node(data)
+        current = self.head
+        prev = None
+        count = 0
+        
+        # Ищем нужное место или доходим до конца
+        while current and count < position:
+            prev = current
+            current = current.next
+            count += 1
+        
+        # Вставляем между prev и current
+        new_node.next = current
+        prev.next = new_node
+
+    def remove(self, data):
+        """Удаление по значению — O(n)"""
+        current = self.head
+        prev = None
+
+        while current:
+            if current.data == data:
+                if prev:
+                    prev.next = current.next
+                else:
+                    self.head = current.next # Удаляем голову
+                return True
+            prev = current
+            current = current.next
+        return False
+
+    def to_list(self):
+        """Преобразование в обычный Python-list — O(n)"""
+        result = []
+        current = self.head
+        while current:
+            result.append(current.data)
+            current = current.next
+        return result
+
+# --- Демонстрация по заданию ---
+ll = LinkedList()
+ll.add_last(1)
+ll.add_last(2)
+ll.add_last(3)
+
+print(f"Исходный список: {ll.to_list()}")
+
+# 1. Вставляем 99 на позицию 1
+ll.insert_at(1, 99)
+print(f"После вставки 99 на позицию 1: {ll.to_list()}")
+
+# 2. Удаляем элемент со значением 2
+removed = ll.remove(2)
+print(f"Удаление '2' успешно? {removed}")
+print(f"Итоговый список: {ll.to_list()}")
