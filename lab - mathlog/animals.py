@@ -1,124 +1,63 @@
-def read_list(file_name):
-    """
-    Читает из файла список пронумерованных названий
-    """
-    l = []
-    with open(file_name) as fin:
-        for line in fin.readlines():
-            l.append(line.split()[1])
-    return l
+# 1 Задание, линейный поиск
+arr = [2, 5, 8, 12, 16, 23, 38, 56, 72, 91]
+def linear_search(arr, target):
+    for i in range(len(arr)):
+        if arr[i] == target:
+            return i
+    return -1
+print("Линейный поиск, результат")
+print(linear_search(arr, 23))
+print(linear_search(arr, 50))
+# 1 Задание, бинарный поиск (итеративный)
+def binary_search(arr, target):
+    left, right = 0, len(arr) - 1
+    while left <= right:
+        mid = (left + right) // 2
+        if arr[mid] == target:
+            return mid
+        elif arr[mid] < target:
+            left = mid + 1
+        else:
+            right = mid - 1
+    return -1
+print("Бинарный поиск, результат")
+print(binary_search(arr, 23))
+print(binary_search(arr, 50))
 
-
-def read_attributes(file_name, objects, predicates):
-    """
-    Читает из файла булеву матрицу, в которой
-    строки - это объекты (с названиями objects)
-    столбцы - это свойства (с названиями predicates)
-    Возвращает словарь: ключ - название объекта, значение - множество названий
-    """
-    with open(file_name) as fin:
-        l = dict()
-        for j, line in enumerate(fin.readlines()):
-            s = set()
-            for i, x in enumerate(line.split()):
-                if int(x):
-                    s.add(predicates[i])
-            l[objects[j]] = s
-    return l
-
-
-animals = read_list("classes.txt")
-predicates = read_list("predicates.txt")
-attributes = read_attributes("predicate-matrix-binary.txt", animals, predicates)
-
-
-print("1. Из перечисленных животных летать умеет только летучая мышь.")
-forall = True
-counterexamples = []
-for animal in animals:
-    if 'flys' in attributes[animal]:
-        if animal != 'bat':
-            forall = False
-            counterexamples.append(animal)
-print(forall, counterexamples)
-
-print("2. Существуют животные, которые одновременно сильные и слабые.")
-exists = False
-examples = []
-for animal in animals:
-    if 'strong' in attributes[animal] and 'weak' in attributes[animal]:
-        exists = True
-        examples.append(animal)
-print(exists, examples)
-
-print("3. Все животные, обитающие в океане, живут в воде.")
-forall = True
-counterexamples = []
-for animal in animals:
-    if 'ocean' in attributes[animal] and 'water' not in attributes[animal]:
-        forall = False
-        counterexamples.append(animal)
-print(forall, counterexamples)
-
-print("4. Среди животных, живущих в воде, найдутся те, которые живут не в океане.")
-exists = False
-examples = []
-for animal in animals:
-    if 'water' in attributes[animal] and 'ocean' not in attributes[animal]:
-        exists = True
-        examples.append(animal)
-print(exists, examples)
-
-print("5. Все животные оранжевого цвета умеют ходить.")
-forall = True
-counterexamples = []
-for animal in animals:
-    if 'orange' in attributes[animal] and 'walks' not in attributes[animal]:
-        forall = False
-        counterexamples.append(animal)
-print(forall, counterexamples)
-
-print("6. Все животные, обитающие в Новом Свете, водятся и в Старом Свете.")
-forall = True
-counterexamples = []
-for animal in animals:
-    if 'newworld' in attributes[animal] and 'oldworld' not in attributes[animal]:
-        forall = False
-        counterexamples.append(animal)
-print(forall, counterexamples)
-
-print("7. Все домашние животные умные.")
-forall = True
-counterexamples = []
-for animal in animals:
-    if 'domestic' in attributes[animal] and 'smart' not in attributes[animal]:
-        forall = False
-        counterexamples.append(animal)
-print(forall, counterexamples)
-
-print("8. Среди животных, живущих в воде, найдутся те, кто не питается рыбой.")
-exists = False
-examples = []
-for animal in animals:
-    if 'water' in attributes[animal] and 'fish' not in attributes[animal]:
-        exists = True
-        examples.append(animal)
-print(exists, examples)
-
-print("9. Среди животных, питающихся планктоном, найдутся те, кто не питается рыбой.")
-exists = False
-examples = []
-for animal in animals:
-    if 'plankton' in attributes[animal] and 'fish' not in attributes[animal]:
-        exists = True
-        examples.append(animal)
-print(exists, examples)
-
-print("10. Все животные, умеющие плавать, не умеют ходить.")
-forall = True
-counterexamples = []
-for animal in animals:
-    if 'swims' in attributes[animal] and 'walks' in attributes[animal]:
-        forall = False
-        counterexamples.append(animal)
-print(forall, counterexamples)
+# 2 pflfybt
+class HashTable:
+    def __init__(self, size=11):
+        self.size = size
+        self.table = [[] for _ in range(size)]
+    def _hash(self, key):
+        return hash(key) % self.size
+    def insert(self, key, value):
+        idx = self._hash(key)
+        for pair in self.table[idx]:
+            if pair[0] == key:
+                pair[1] = value; return
+        self.table[idx].append([key, value])
+    def search(self, key):
+        idx = self._hash(key)
+        for pair in self.table[idx]:
+            if pair[0] == key: return pair[1]
+        return None
+    def delete(self, key):
+        idx = self._hash(key)
+        for i, pair in enumerate(self.table[idx]):
+            if pair[0] == key:
+                del self.table[idx][i]
+                return True
+        return False
+    def display(self):
+        for i, bucket in enumerate(self.table):
+            print(f"{i}: {bucket}")
+htable = HashTable()
+example = {"Малых": 5, "Свиридов": 5, "Михайленко": 5, "Прокопенко": 5, "Дмитров": 5}
+for name, grade in example.items():
+    htable.insert(name, grade)
+htable.display()
+print("Поиск оценки Свиридов:", htable.search("Свиридов"))
+print("Поиск оценки Белов:", htable.search("Белов"))
+print("Удаление записи Михайленко:", htable.delete("Михайленко")) # tyt proeb
+htable.display()
