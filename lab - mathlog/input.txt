@@ -1,1 +1,591 @@
-���� �������� ����� ������, �� ��������� ��������
+"""
+Расширенный конвертер инфикс -> постфикс с унарным минусом, **, дробными числами
+Стек на связном списке из лекции
+"""
+
+# ==================== СТЕК НА СВЯЗНОМ СПИСКЕ ====================
+class Node:
+    """Узел связного списка"""
+    def __init__(self, data):
+        self.data = data
+        self.next = None
+
+class Stack:
+    """Стек на основе связного списка"""
+    def __init__(self):
+        self.top = None        # вершина стека (head списка)
+    
+    def push(self, data):      # O(1) - вставка в начало
+        node = Node(data)
+        node.next = self.top
+        self.top = node
+    
+    def pop(self):             # O(1) - удаление из начала
+        if self.top is None:
+            raise IndexError("empty")
+        data = self.top.data
+        self.top = self.top.next
+        return data
+    
+    def peek(self):            # O(1) - просмотр вершины
+        if self.top is None:
+            raise IndexError("empty")
+        return self.top.data
+    
+    def is_empty(self):        # O(1) - проверка пустоты
+        return self.top is None
+
+
+# ==================== ПРИОРИТЕТЫ И АССОЦИАТИВНОСТЬ ====================
+# Приоритеты: чем больше число, тем выше
+# ** - приоритет 3 (правоассоциативный)
+# * / - приоритет 2 (левоассоциативные)
+# + - - приоритет 1 (левоассоциативные)
+# u_minus - приоритет 4 (унарный минус, правоассоциативный)
+PRIORITY = {'+': 1, '-': 1, '*': 2, '/': 2, '**': 3, 'u_minus': 4}
+ASSOC = {'+': 'L', '-': 'L', '*': 'L', '/': 'L', '**': 'R', 'u_minus': 'R'}
+
+
+# ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+def is_number(token):
+    """Проверка, является ли токен числом (целым или дробным) - из лекции"""
+    try:
+        float(token)
+        return True
+    except ValueError:
+        return False
+
+
+def tokenize(expr):
+    """
+    РАЗБОР СТРОКИ НА ТОКЕНЫ С УЧЁТОМ УНАРНОГО МИНУСА
+    Унарный минус определяется:
+    - в начале выражения
+    - после открывающей скобки
+    - после другого оператора
+    """
+    # Добавляем пробелы вокруг операторов для корректного split (если их нет)
+    if ' ' not in expr:
+        e = expr
+        for op in ['**', '+', '-', '*', '/', '(', ')']:
+            e = e.replace(op, f' {op} ')
+        tokens_raw = e.split()
+    else:
+        tokens_raw = expr.split()
+    
+    tokens = []
+    prev = None
+    for t in tokens_raw:
+        if t == '-':
+            # Минус унарный, если предыдущий токен - оператор, '(' или ничего
+            if prev is None or prev in PRIORITY or prev == '(' or prev == 'u_minus':
+                tokens.append('u_minus')   # заменяем на специальный токен
+            else:
+                tokens.append('-')          # обычный бинарный минус
+        else:
+            tokens.append(t)
+        prev = tokens[-1]
+    return tokens
+
+
+# ==================== АЛГОРИТМ СОРТИРОВОЧНОЙ СТАНЦИИ ДЕЙКСТРЫ ====================
+def infix_to_postfix(expression, trace=False):
+    """
+    ПРЕОБРАЗОВАНИЕ ИНФИКСНОЙ ЗАПИСИ В ПОСТФИКСНУЮ (ОБРАТНУЮ ПОЛЬСКУЮ)
+    Алгоритм из лекции: числа -> выход, операторы -> стек с учётом приоритетов
+    """
+    # Проверка на пустое выражение
+    if not expression or expression.strip() == '':
+        raise ValueError("Пустое выражение")
+    
+    tokens = tokenize(expression)      # получаем токены с учётом унарных минусов
+    output = []                         # выходная очередь (постфиксная запись)
+    stack = Stack()                     # стек операторов (на связном списке)
+    
+    # Трассировка для визуализации работы алгоритма
+    if trace:
+        print(f"\nТрассировка: {expression}")
+        print(f"{'Токен':<12} {'Действие':<30} {'Стек':<20} {'Выход'}")
+        print("-"*70)
+    
+    for token in tokens:
+        # СЛУЧАЙ 1: Число -> сразу в выход (из лекции)
+        if is_number(token):
+            output.append(token)
+            action = "число -> выход"
+        
+        # СЛУЧАЙ 2: Унарный минус -> в стек (как оператор)
+        elif token == 'u_minus':
+            stack.push('u_minus')
+            action = "унарный - -> стек"
+        
+        # СЛУЧАЙ 3: Открывающая скобка -> в стек (из лекции)
+        elif token == '(':
+            stack.push(token)
+            action = "'(' -> стек"
+        
+        # СЛУЧАЙ 4: Закрывающая скобка (из лекции)
+        elif token == ')':
+            # Выталкиваем всё до '('
+            while not stack.is_empty() and stack.peek() != '(':
+                output.append(stack.pop())
+            # Проверка на лишнюю скобку
+            if stack.is_empty() or stack.peek() != '(':
+                raise ValueError("Лишняя ')'")
+            stack.pop()      # удаляем '('
+            action = "выталкиваем до '('"
+        
+        # СЛУЧАЙ 5: Оператор (из лекции с доработкой для правоассоциативности)
+        elif token in PRIORITY:
+            # Выталкиваем операторы с бОльшим или равным приоритетом
+            # НО для правоассоциативных (R) - только с бОльшим
+            while (not stack.is_empty() and stack.peek() != '(' and 
+                   stack.peek() in PRIORITY):
+                top = stack.peek()
+                # Левоассоциативный: выталкиваем при >=
+                if (ASSOC.get(token, 'L') == 'L' and 
+                    PRIORITY[top] >= PRIORITY[token]):
+                    output.append(stack.pop())
+                # Правоассоциативный: выталкиваем только при >
+                elif (ASSOC.get(token, 'L') == 'R' and 
+                      PRIORITY[top] > PRIORITY[token]):
+                    output.append(stack.pop())
+                else:
+                    break
+            stack.push(token)
+            action = f"{token} -> стек"
+        
+        # СЛУЧАЙ 6: Неизвестный токен - ошибка
+        else:
+            raise ValueError(f"Неизвестный токен '{token}'")
+        
+        # Вывод трассировки (состояние стека и выхода)
+        if trace:
+            s = []
+            cur = stack.top
+            while cur:
+                s.append(str(cur.data))
+                cur = cur.next
+            print(f"{token:<12} {action:<30} {str(s):<20} {' '.join(output)}")
+    
+    # После обработки всех токенов: выталкиваем всё из стека в выход (из лекции)
+    while not stack.is_empty():
+        top = stack.pop()
+        if top == '(':
+            raise ValueError("Не хватает ')'")
+        output.append(top)
+        if trace:
+            s = []
+            cur = stack.top
+            while cur:
+                s.append(str(cur.data))
+                cur = cur.next
+            print(f"{'':<12} {'выталкиваем ' + top:<30} {str(s):<20} {' '.join(output)}")
+    
+    if trace:
+        print(f"\nПостфикс: {' '.join(output)}\n")
+    
+    return output
+
+
+# ==================== ВЫЧИСЛЕНИЕ ПОСТФИКСНОГО ВЫРАЖЕНИЯ ====================
+def evaluate_postfix(tokens):
+    """
+    ВЫЧИСЛЕНИЕ ПОСТФИКСНОЙ ЗАПИСИ (ОБРАТНОЙ ПОЛЬСКОЙ)
+    Алгоритм из лекции: операнды в стек, при операторе - два верхних, результат обратно
+    """
+    stack = []
+    for token in tokens:
+        # Число -> кладём в стек
+        if is_number(token):
+            stack.append(float(token))
+        # Унарный минус -> берём один операнд, меняем знак
+        elif token == 'u_minus':
+            stack.append(-stack.pop())
+        # Бинарный оператор -> берём два операнда, вычисляем, результат в стек
+        elif token in PRIORITY:
+            b = stack.pop()      # второй операнд (правый)
+            a = stack.pop()      # первый операнд (левый)
+            if token == '+': stack.append(a + b)
+            elif token == '-': stack.append(a - b)
+            elif token == '*': stack.append(a * b)
+            elif token == '/': stack.append(a / b)
+            elif token == '**': stack.append(a ** b)
+    return stack[0]              # в стеке остаётся результат
+
+
+# ==================== ГЛАВНАЯ ФУНКЦИЯ ВЫЧИСЛЕНИЯ ====================
+def calculate(expression, trace=False):
+    """
+    ВЫЧИСЛЕНИЕ ИНФИКСНОГО ВЫРАЖЕНИЯ
+    Сначала преобразуем в постфикс, затем вычисляем
+    """
+    postfix = infix_to_postfix(expression, trace)
+    return evaluate_postfix(postfix)
+
+
+# ==================== ТРАССИРОВКА ДЛЯ ЗАДАННОГО ВЫРАЖЕНИЯ ====================
+print("="*70)
+print("ТРАССИРОВКА ЗАДАННОГО ВЫРАЖЕНИЯ: -2 + 3.5 ** 2 ** 1 * (4 - -1)")
+calculate("- 2 + 3.5 ** 2 ** 1 * ( 4 - -1 )", trace=True)
+
+
+# ==================== ТЕСТИРОВАНИЕ НА 5+ ВЫРАЖЕНИЯХ ====================
+print("\n" + "="*70)
+print("ТЕСТИРОВАНИЕ")
+print("="*70)
+
+tests = [
+    ("-3 + 5", 2.0, "унарный минус в начале"),
+    ("(-2 * 4)", -8.0, "унарный минус в скобках"),
+    ("2 ** 3 ** 2", 512.0, "правая ассоциативность ** (2^(3^2)=512)"),
+    ("3.5 ** 2 * (4 - -1)", 61.25, "дробные числа и унарный минус"),
+    ("- 2 + 3.5 ** 2 ** 1 * ( 4 - -1 )", 59.25, "полное выражение из задания"),
+    ("( 10 - 2 ) * ( 3 + 1 )", 32.0, "скобки и бинарные операторы"),
+]
+
+for expr, exp, desc in tests:
+    try:
+        res = calculate(expr)
+        print(f"{desc:40} {expr:35} = {res:10} (ожид: {exp}) {'✓' if abs(res-exp)<1e-9 else '✗'}")
+    except Exception as e:
+        print(f"{desc:40} {expr:35} = ОШИБКА: {e}")
+
+
+# ==================== ОБРАБОТКА ОШИБОК ====================
+print("\n" + "="*70)
+print("ОБРАБОТКА ОШИБОК")
+print("="*70)
+
+# Проверка различных ошибочных ситуаций
+errors = [
+    ("(3+4", "не хватает закрывающей скобки"),
+    ("3+4)", "лишняя закрывающая скобка"),
+    ("3+@4", "неизвестный токен"),
+    ("", "пустое выражение"),
+    ("   ", "пустое выражение (пробелы)"),
+    ("3/0", "деление на ноль"),
+]
+
+for expr, desc in errors:
+    try:
+        res = calculate(expr)
+        print(f"'{expr}' -> {res} (ОШИБКА НЕ ОБНАРУЖЕНА!)")
+    except Exception as e:
+        print(f"'{expr}' -> {type(e).__name__}: {e}")
+
+
+# ==================== АСИМПТОТИЧЕСКАЯ СЛОЖНОСТЬ (КОММЕНТАРИЙ) ====================
+"""
+АСИМПТОТИЧЕСКАЯ СЛОЖНОСТЬ:
+
+tokenize:        O(n) - однократный проход по строке
+infix_to_postfix: O(n) - каждый токен обрабатывается 1 раз
+  - push/pop: O(1) на связном списке
+  - амортизированный анализ: каждый оператор входит в стек и выходит 1 раз
+evaluate_postfix: O(n) - линейный проход по токенам
+calculate:       O(n) - суммарно
+
+Итоговая временная сложность: O(n), где n - длина строки выражения
+Итоговая пространственная сложность: O(n) для хранения токенов и стеков
+
+Обоснование: Алгоритм сортировочной станции Дейкстры обрабатывает 
+каждый токен ровно один раз. Операции со стеком (push/pop) выполняются 
+за O(1) благодаря реализации на связном списке. Каждый оператор попадает 
+в стек и выходит из него не более одного раза, поэтому суммарное 
+количество операций линейно относительно количества токенов.
+"""
+
+# № 1 – Расширение конвертера инфиксной записи
+# 
+# Реализуйте расширенную версию функции infix_to_postfix, которая поддерживает:
+# унарный минус, например, -3 + 5, ( -2 * 4 );
+# оператор возведения в степень ** с правой ассоциативностью, т.е. 2 ** 3 ** 2 должно вычисляться как 2 ** (3 ** 2) = 512);
+# дробные числа, токены вида 3.14.
+# Используйте структуру связного списка, классы Node и Stack из лекции вместо встроенного списка Python для стека операторов.
+# Покажите трассировку алгоритма, состояние стека и выходного списка, для выражения: - 2 + 3.5 ** 2 ** 1 * ( 4 - -1 ).
+# Проверьте работу через calculate(...) минимум на 5 выражениях, включая унарный минус и возведение в степень.
+# Обработайте ошибки: несбалансированные скобки, неизвестные токены, пустое выражение.
+
+
+
+
+
+
+
+
+
+
+
+"""
+№ 2 – Вычислитель постфиксного выражения с историей
+"""
+
+class Node:
+    def __init__(self, data):
+        self.data = data
+        self.next = None
+
+class Stack:
+    def __init__(self):
+        self.top = None
+    
+    def push(self, data):
+        node = Node(data)
+        node.next = self.top
+        self.top = node
+    
+    def pop(self):
+        if self.top is None:
+            raise IndexError("empty")
+        data = self.top.data
+        self.top = self.top.next
+        return data
+    
+    def is_empty(self):
+        return self.top is None
+
+
+class HistoryNode:
+    def __init__(self, expr, res):
+        self.expr = expr
+        self.res = res
+        self.next = None
+        self.prev = None
+
+
+class PostfixCalculator:
+    def __init__(self, k=10):
+        self.k = k
+        self.head = None
+        self.tail = None
+        self.size = 0
+    
+    def _is_number(self, token):
+        try:
+            float(token)
+            return True
+        except ValueError:
+            return False
+    
+    def evaluate(self, expr):
+        if not expr or expr.strip() == '':
+            raise ValueError("Пустое выражение")
+        
+        tokens = expr.split()
+        stack = Stack()
+        ops = {'+', '-', '*', '/', '**'}
+        
+        for token in tokens:
+            if self._is_number(token):
+                stack.push(float(token))
+            elif token in ops:
+                if stack.is_empty():
+                    raise ValueError(f"Недостаточно операндов для '{token}'")
+                b = stack.pop()
+                if stack.is_empty():
+                    raise ValueError(f"Недостаточно операндов для '{token}'")
+                a = stack.pop()
+                
+                if token == '+': stack.push(a + b)
+                elif token == '-': stack.push(a - b)
+                elif token == '*': stack.push(a * b)
+                elif token == '/':
+                    if b == 0:
+                        raise ZeroDivisionError("Деление на ноль")
+                    stack.push(a / b)
+                elif token == '**':
+                    stack.push(a ** b)
+            else:
+                raise ValueError(f"Неизвестный токен: '{token}'")
+        
+        if stack.is_empty():
+            raise ValueError("Некорректное выражение")
+        
+        result = stack.pop()
+        
+        if not stack.is_empty():
+            raise ValueError("Лишние операнды в стеке")
+        
+        self._add_to_history(expr, result)
+        return result
+    
+    def _add_to_history(self, expr, res):
+        node = HistoryNode(expr, res)
+        node.next = self.head
+        if self.head:
+            self.head.prev = node
+        self.head = node
+        if self.tail is None:
+            self.tail = node
+        self.size += 1
+        
+        if self.size > self.k:
+            self.tail = self.tail.prev
+            if self.tail:
+                self.tail.next = None
+            self.size -= 1
+    
+    def history(self):
+        result = []
+        cur = self.head
+        while cur:
+            result.append((cur.expr, cur.res))
+            cur = cur.next
+        return result
+    
+    def undo(self):
+        if self.head is None:
+            raise IndexError("Нет записей для отмены")
+        expr, res = self.head.expr, self.head.res
+        self.head = self.head.next
+        if self.head:
+            self.head.prev = None
+        else:
+            self.tail = None
+        self.size -= 1
+        return (expr, res)
+
+
+# Демонстрация
+print("="*60)
+print("ДЕМОНСТРАЦИЯ РАБОТЫ (k=5)")
+print("="*60)
+
+calc = PostfixCalculator(k=5)
+
+exprs = [
+    "3 5 +",
+    "10 2 /",
+    "4 2 **",
+    "5 1 2 + *",
+    "8 2 3 * +",
+    "15 3 / 2 *",
+    "7 2 - 3 *",
+]
+
+for i, e in enumerate(exprs, 1):
+    try:
+        res = calc.evaluate(e)
+        print(f"{i}. {e} = {res}")
+    except Exception as err:
+        print(f"{i}. {e} = ОШИБКА: {err}")
+
+print("\nИСТОРИЯ (от новых к старым):")
+for e, r in calc.history():
+    print(f"  {e} = {r}")
+
+print("\nОТМЕНА 2 вычислений:")
+for _ in range(2):
+    e, r = calc.undo()
+    print(f"  Отменено: {e} = {r}")
+
+print("\nИСТОРИЯ ПОСЛЕ ОТМЕНЫ:")
+for e, r in calc.history():
+    print(f"  {e} = {r}")
+
+print("\nНОВЫЕ ВЫЧИСЛЕНИЯ:")
+calc.evaluate("100 10 /")
+calc.evaluate("2 3 4 * +")
+for e, r in calc.history():
+    print(f"  {e} = {r}")
+
+
+# Тесты
+print("\n" + "="*60)
+print("ТЕСТЫ")
+print("="*60)
+
+def test(cond, msg):
+    if cond:
+        print(f"  ✓ {msg}")
+    else:
+        print(f"  ✗ {msg}")
+
+calc2 = PostfixCalculator(k=3)
+
+# Тест 1: базовые операции
+test(calc2.evaluate("3 4 +") == 7, "3+4=7")
+test(calc2.evaluate("10 5 -") == 5, "10-5=5")
+test(calc2.evaluate("4 5 *") == 20, "4*5=20")
+test(calc2.evaluate("15 3 /") == 5, "15/3=5")
+test(calc2.evaluate("2 3 **") == 8, "2**3=8")
+
+# Тест 2: сложные выражения
+test(calc2.evaluate("3 4 5 * +") == 23, "3+4*5=23")
+test(calc2.evaluate("5 1 2 + *") == 15, "5*(1+2)=15")
+
+# Тест 3: ограничение истории
+calc3 = PostfixCalculator(k=3)
+calc3.evaluate("1 1 +")
+calc3.evaluate("2 2 +")
+calc3.evaluate("3 3 +")
+calc3.evaluate("4 4 +")
+test(len(calc3.history()) == 3, "История хранит только 3 записи")
+test(calc3.history()[0][0] == "4 4 +", "Новейшая запись - последняя")
+
+# Тест 4: undo
+calc4 = PostfixCalculator(k=5)
+calc4.evaluate("1 1 +")
+calc4.evaluate("2 2 +")
+calc4.evaluate("3 3 +")
+removed = calc4.undo()
+test(removed[0] == "3 3 +" and removed[1] == 6, "Undo удаляет последнюю запись")
+test(len(calc4.history()) == 2, "После undo осталось 2 записи")
+
+# Тест 5: ошибки
+calc5 = PostfixCalculator(k=3)
+try:
+    calc5.evaluate("5 0 /")
+    test(False, "Деление на ноль -> ZeroDivisionError")
+except ZeroDivisionError:
+    test(True, "Деление на ноль обработано")
+
+try:
+    calc5.evaluate("5 +")
+    test(False, "Недостаточно операндов -> ValueError")
+except ValueError:
+    test(True, "Недостаточно операндов обработано")
+
+try:
+    calc5.evaluate("")
+    test(False, "Пустое выражение -> ValueError")
+except ValueError:
+    test(True, "Пустое выражение обработано")
+
+try:
+    calc5.undo()
+    test(False, "Undo на пустой истории -> IndexError")
+except IndexError:
+    test(True, "Undo на пустой истории обработан")
+
+
+# ==================== АСИМПТОТИЧЕСКАЯ СЛОЖНОСТЬ (КОММЕНТАРИЙ) ====================
+""" 
+АСИМПТОТИЧЕСКАЯ СЛОЖНОСТЬ:
+
+evaluate(expr):  O(m) - m токенов, каждый обрабатывается 1 раз
+history():       O(k) - обход списка из k записей
+undo():          O(1) - удаление головы списка
+_add_to_history(): O(1) - вставка в начало
+_remove_oldest():  O(1) - удаление хвоста
+
+ПОЧЕМУ СВЯЗНЫЙ СПИСОК, А НЕ deque?
+- Вставка в начало (head): O(1)
+- Удаление с конца (tail): O(1)
+- Удаление с начала (undo): O(1)
+- Доступ по индексу не нужен, только последовательный обход
+- Связный список даёт те же O(1) для нужных операций, что и deque,
+  но наглядно демонстрирует работу с динамическими структурами из лекции
+"""
+
+# № 2 – Вычислитель постфиксного выражения с историей
+# 
+# На основе evaluate_postfix создайте класс PostfixCalculator, который:
+# вычисляет значение постфиксного выражения, переданного строкой (токены разделены пробелами);
+# хранит историю последних k вычислений (выражение → результат) в виде структуры на основе связного списка с ограниченной длиной, параметр k задаётся при создании объекта;
+# поддерживает метод history(), возвращающий историю в виде списка пар (выражение, результат) от новейшего к старейшему;
+# поддерживает метод undo(), отменяющий последнее вычисление и удаляющий его из истории.
+# Продемонстрируйте работу: выполните не менее 7 вычислений, затем вызовите history() и undo().
+# Корректно обработайте деление на ноль, недостаточное количество операндов и переполнение стека.
+# Напишите минимум 5 тестов, через assert или unittest, покрывающих граничные случаи.
