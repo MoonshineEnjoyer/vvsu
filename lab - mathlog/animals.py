@@ -61,3 +61,49 @@ print("Поиск оценки Свиридов:", htable.search("Свиридо
 print("Поиск оценки Белов:", htable.search("Белов"))
 print("Удаление записи Михайленко:", htable.delete("Михайленко")) # tyt proeb
 htable.display()
+
+
+
+
+class HashTable:
+    def __init__(self, size=11):
+        self.size = size
+        self.table = [[] for _ in range(size)]
+    def _hash(self, key):
+        return hash(key) % self.size
+    def insert(self, key, value):
+        idx = self._hash(key)
+        for pair in self.table[idx]:
+            if pair[0] == key:
+                pair[1] = value; return # обновление
+        self.table[idx].append([key, value]) # добавление
+    def search(self, key):
+        idx = self._hash(key)
+        for pair in self.table[idx]:
+            if pair[0] == key: return pair[1]
+        return None
+    def delete(self, key):
+        idx = self._hash(key)
+        for i, pair in enumerate(self.table[idx]):
+            if pair[0] == key:
+                del self.table[idx][i]
+                return True
+        return False
+    def display(self):
+        for i, bucket in enumerate(self.table):
+            print(f"{i}: {bucket}")
+table = HashTable()
+table.insert(0, "Малых: 5")
+table.insert(1, "Михайленко: 4")
+table.insert(6, "Гончаренко: 3")
+table.insert(3, "Свиридов: 5")
+table.insert(4, "Смирнов: 4")
+table.display()
+
+print("\nПоиск существующей записи")
+print(table.search(3))
+print("Поиск несуществующей записи")
+print(table.search(48))
+
+table.delete(1)
+table.display()
