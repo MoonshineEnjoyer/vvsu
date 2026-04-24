@@ -196,3 +196,50 @@ for t in tests:
     print(f"Инфикс: {t}")
     print(f"Постфикс: {calc.to_postfix(t)}")
     print(f"Результат: {calc.calculate(t)}\n")
+
+# --- ИНТЕРФЕЙС ПОЛЬЗОВАТЕЛЯ (Дополнение к Заданию №2) ---
+
+def user_interface():
+    calc = LinkedListCalculator()
+    print("-" * 40)
+    print("РЕЖИМ ПОЛЬЗОВАТЕЛЬСКОГО ВВОДА")
+    print("Доступные операции: +, -, *, /, ** (степень), скобки ( )")
+    print("Введите 'exit' для выхода.")
+    
+    # Мы не используем бесконечный цикл, если это критично для ТЗ, 
+    # но обычно для интерфейса это стандарт. 
+    # Если нужно строго ОДИН ввод, уберите while.
+    while True:
+        try:
+            expr = input("\nВведите выражение: ").strip()
+            
+            if expr.lower() in ('exit', 'выход', 'quit'):
+                print("Программа завершена.")
+                break
+            
+            if not expr:
+                continue
+
+            # 1. Получаем постфиксную запись (Метод из ТЗ)
+            postfix = calc.to_postfix(expr)
+            
+            # 2. Получаем результат (Метод из ТЗ)
+            result = calc.calculate(expr)
+            
+            print(f"Постфиксная форма: {postfix}")
+            print(f"Результат (float): {result}")
+            
+        except Exception as e:
+            print(f"Произошла ошибка при обработке: {e}")
+            print("Проверьте корректность расстановки скобок и операторов.")
+
+if __name__ == "__main__":
+    # Сначала выполняем обязательные тесты по ТЗ
+    benchmark()
+    
+    print("\nТестирование обязательных выражений:")
+    for t in tests:
+        print(f"Инфикс: {t} | Результат: {calc.calculate(t)}")
+        
+    # Затем запускаем ручной ввод
+    user_interface()
