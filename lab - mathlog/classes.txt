@@ -173,3 +173,192 @@ print(f"Постфикс: {postf}")
 print(f"Результат Prefix: {res_pref}")
 print(f"Результат Postfix: {res_postf}")
 print(f"Результаты совпадают: {is_match}")
+
+
+
+
+
+
+
+
+
+
+
+
+class PrefixCalculator:
+    def __init__(self):
+        # Приоритеты: чем выше число, тем быстрее выполняется операция
+        # '~' — это внутреннее обозначение унарного минуса (самый высокий приоритет)
+        self.precedence = {'+': 1, '-': 1, '*': 2, '/': 2, '**': 3, '~': 4}
+
+    def _tokenize(self, expr):
+        """Разбор строки на значимые части (токены) вручную."""
+        tokens = []
+        i = 0
+        while i < len(expr):
+            char = expr[i]
+            if char.isspace(): # Игнорируем пробелы
+                i += 1
+                continue
+            
+            # Определение унарного минуса (если минус в начале или после оператора)
+            if char == '-':
+                if i == 0 or tokens[-1] in ('+', '-', '*', '/', '(', '**', '~'):
+                    tokens.append('~')
+                    i += 1
+                    continue
+            
+            # Сборка числа (целого или с точкой)
+            if char.isdigit() or char == '.':
+                num = ""
+                while i < len(expr) and (expr[i].isdigit() or expr[i] == '.'):
+                    num += expr[i]
+                    i += 1
+                tokens.append(num)
+                continue
+            
+            # Поддержка оператора степени (двойной символ)
+            if expr[i:i+2] == '**':
+                tokens.append('**')
+                i += 2
+                continue
+            
+            tokens.append(char)
+            i += 1
+        return tokens
+
+    def infix_to_postfix(self, expression):
+        """Классический алгоритм 'Сортировочная станция' (Infix -> Postfix)."""
+        tokens = self._tokenize(expression)
+        output, stack = [], []
+        for token in tokens:
+            if token.replace('.', '', 1).isdigit(): # Если число — сразу в ответ
+                output.append(token)
+            elif token == '(': # Открывающая скобка всегда в стек
+                stack.append(token)
+            elif token == ')': # Закрывающая — выталкиваем всё до '('
+                while stack and stack[-1] != '(':
+                    output.append(stack.pop())
+                if stack: stack.pop() # Удаляем саму '('
+            else:
+                # Если пришел оператор, выталкиваем из стека те, что сильнее или равны
+                while stack and stack[-1] != '(' and self.precedence.get(stack[-1], 0) >= self.precedence.get(token, 0):
+                    # Исключение для правоассоциативных (**) — они ложатся сверху при равенстве
+                    if token in ('**', '~') and stack[-1] == token: break
+                    output.append(stack.pop())
+                stack.append(token)
+        while stack: output.append(stack.pop())
+        return " ".join(output)
+
+    def infix_to_prefix(self, expression):
+        """Алгоритм перевода в префикс через двойную инверсию (согласно П.3 ТЗ)."""
+        # 1. Инвертируем входные токены
+        tokens = self._tokenize(expression)[::-1]
+        
+        # 2. Меняем скобки местами (открывающая становится закрывающей)
+        for i in range(len(tokens)):
+            if tokens[i] == '(': tokens[i] = ')'
+            elif tokens[i] == ')': tokens[i] = '('
+        
+        output, stack = [], []
+        for token in tokens:
+            if token.replace('.', '', 1).isdigit():
+                output.append(token)
+            elif token == '(':
+                stack.append(token)
+            elif token == ')':
+                while stack and stack[-1] != '(':
+                    output.append(stack.pop())
+                if stack: stack.pop()
+            else:
+                # Важное отличие для префикса: выталкиваем только если строго БОЛЬШЕ (>)
+                while stack and stack[-1] != '(' and self.precedence.get(stack[-1], 0) > self.precedence.get(token, 0):
+                    output.append(stack.pop())
+                stack.append(token)
+        
+        while stack: output.append(stack.pop())
+        # 3. Инвертируем результат обратно
+        return " ".join(output[::-1])
+
+    def evaluate_prefix(self, prefix_expr):
+        """Вычисление префикса (Пункт 2: поддержка float и обработка ошибок)."""
+        tokens = prefix_expr.split()
+        stack = []
+        try:
+            # Читаем ПРЕФИКС справа налево
+            for i in range(len(tokens) - 1, -1, -1):
+                token = tokens[i]
+                if token.replace('.', '', 1).isdigit():
+                    stack.append(float(token))
+                elif token == '~': # Унарный минус меняет знак одного числа
+                    stack.append(-stack.pop())
+                else:
+                    # Извлекаем два числа для бинарного оператора
+                    if len(stack) < 2: raise ValueError("Неверная структура")
+                    a, b = stack.pop(), stack.pop()
+                    if token == '+': stack.append(a + b)
+                    elif token == '-': stack.append(a - b)
+                    elif token == '*': stack.append(a * b)
+                    elif token == '/':
+                        if b == 0: raise ZeroDivisionError("Деление на ноль")
+                        stack.append(a / b)
+                    elif token == '**': stack.append(a ** b)
+            return float(stack[0])
+        except Exception as e:
+            return f"Ошибка: {e}"
+
+    def evaluate_postfix(self, postfix_expr):
+        """Вычисление постфикса (для сравнения в П.5)."""
+        tokens = postfix_expr.split()
+        stack = []
+        try:
+            for token in tokens:
+                if token.replace('.', '', 1).isdigit():
+                    stack.append(float(token))
+                elif token == '~':
+                    stack.append(-stack.pop())
+                else:
+                    b, a = stack.pop(), stack.pop() # Важен порядок: b - верхний, a - под ним
+                    if token == '+': stack.append(a + b)
+                    elif token == '-': stack.append(a - b)
+                    elif token == '*': stack.append(a * b)
+                    elif token == '/': stack.append(a / b)
+                    elif token == '**': stack.append(a ** b)
+            return float(stack[0])
+        except: return None
+
+def compare_evaluate(expression):
+    """Сравнение двух методов (Пункт 5)."""
+    calc = PrefixCalculator()
+    prefix = calc.infix_to_prefix(expression)
+    postfix = calc.infix_to_postfix(expression)
+    
+    res_pre = calc.evaluate_prefix(prefix)
+    res_post = calc.evaluate_postfix(postfix)
+    
+    match = False
+    if isinstance(res_pre, float) and res_post is not None:
+        # Сравнение float через допустимую погрешность (эпсилон)
+        match = abs(res_pre - res_post) < 1e-9
+        
+    return prefix, postfix, res_pre, res_post, match
+
+# --- Блок вывода ---
+calc = PrefixCalculator()
+
+# Пункт 4 (обязательные примеры)
+print("№4. ТАБЛИЦА ТЕСТОВЫХ ВЫРАЖЕНИЙ")
+test_exprs = ["3 - 4 * 2", "(3 + 4) * 2", "10 - 2 * (3 + 1)"]
+print(f"{'Infix':<20} | {'Postfix':<20} | {'Prefix':<20}")
+print("-" * 65)
+for e in test_exprs:
+    print(f"{e:<20} | {calc.infix_to_postfix(e):<20} | {calc.infix_to_prefix(e):<20}")
+
+# Ввод и Пункт 5
+print("\n№5. ПОЛЬЗОВАТЕЛЬСКИЙ ВВОД И СРАВНЕНИЕ")
+user_input = input("Введите выражение: ")
+pref, postf, r_pre, r_post, is_match = compare_evaluate(user_input)
+
+print(f"Префикс: {pref} | Постфикс: {postf}")
+print(f"Результат (Prefix): {r_pre} | Результат (Postfix): {r_post}")
+print(f"Совпадение: {is_match}")
