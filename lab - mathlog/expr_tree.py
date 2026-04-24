@@ -444,3 +444,256 @@ def benchmark():
     for i in range(n): q.enqueue(i)
     for i in range(n): q.dequeue()
     print(f"Queue 10k enq/deq: {time.time() - start:.5f} сек (каждая операция O(1))")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import time
+
+# --- БАЗОВЫЕ СТРУКТУРЫ ДАННЫХ (БЕЗ ИСПОЛЬЗОВАНИЯ ВСТРОЕННЫХ СПИСКОВ) ---
+
+class Node:
+    """
+    Узел — это минимальный кирпичик связного списка.
+    Хранит само значение и ссылки (указатели) на соседние элементы.
+    """
+    def __init__(self, value):
+        self.value = value
+        self.next = None  # Ссылка на следующий узел
+        self.prev = None  # Ссылка на предыдущий узел (нужна для Queue)
+
+class Stack:
+    """
+    Стек (LIFO — 'Последним пришел, первым ушел').
+    Все операции происходят только с 'головой' (head).
+    """
+    def __init__(self):
+        self.head = None
+        self.size = 0
+
+    def push(self, value):
+        # O(1): Просто ставим новый узел перед текущей головой
+        new_node = Node(value)
+        new_node.next = self.head
+        self.head = new_node
+        self.size += 1
+
+    def pop(self):
+        # O(1): Берем значение из головы и передвигаем указатель на следующий узел
+        if self.is_empty(): raise IndexError("Стек пуст")
+        val = self.head.value
+        self.head = self.head.next
+        self.size -= 1
+        return val
+
+    def peek(self):
+        # Позволяет узнать значение на вершине, не удаляя его
+        return self.head.value if self.head else None
+
+    def is_empty(self):
+        return self.head is None
+
+class Queue:
+    """
+    Очередь (FIFO — 'Первым пришел, первым ушел').
+    Для эффективности O(1) используем указатели и на начало (head), и на конец (tail).
+    """
+    def __init__(self):
+        self.head = None
+        self.tail = None
+        self.size = 0
+
+    def enqueue(self, value):
+        # O(1): Добавляем новый узел строго в конец (tail)
+        new_node = Node(value)
+        if self.is_empty():
+            self.head = self.tail = new_node
+        else:
+            new_node.prev = self.tail
+            self.tail.next = new_node
+            self.tail = new_node
+        self.size += 1
+
+    def dequeue(self):
+        # O(1): Забираем элемент строго из начала (head)
+        if self.is_empty(): raise IndexError("Очередь пуста")
+        val = self.head.value
+        self.head = self.head.next
+        if self.head: self.head.prev = None
+        else: self.tail = None
+        self.size -= 1
+        return val
+
+    def is_empty(self):
+        return self.head is None
+
+# --- КАЛЬКУЛЯТОР НА СВЯЗНЫХ СПИСКАХ ---
+
+class LinkedListCalculator:
+    def __init__(self):
+        # Таблица приоритетов (~ — внутренний символ для унарного минуса)
+        self.precedence = {'+': 1, '-': 1, '*': 2, '/': 2, '**': 3, '~': 4}
+
+    def _tokenize(self, expr):
+        """
+        Преобразует строку в очередь токенов. 
+        Не использует list.append, сразу строит Queue из объектов Node.
+        """
+        q = Queue()
+        i = 0
+        while i < len(expr):
+            char = expr[i]
+            if char.isspace():
+                i += 1
+                continue
+            
+            # Определение унарного минуса
+            # Если минус стоит в начале или после другого оператора — он унарный
+            if char == '-':
+                if q.is_empty() or q.tail.value in ('+', '-', '*', '/', '(', '**', '~'):
+                    q.enqueue('~')
+                    i += 1
+                    continue
+                    
+            # Сборка многозначных и вещественных чисел
+            if char.isdigit() or char == '.':
+                num = ""
+                while i < len(expr) and (expr[i].isdigit() or expr[i] == '.'):
+                    num += expr[i]
+                    i += 1
+                q.enqueue(num)
+                continue
+            
+            # Сборка оператора степени
+            if expr[i:i+2] == '**':
+                q.enqueue('**')
+                i += 2
+                continue
+            
+            q.enqueue(char)
+            i += 1
+        return q
+
+    def to_postfix(self, expression):
+        """
+        Перевод в постфиксную запись (Алгоритм 'Сортировочная станция').
+        Использует самописные Stack и Queue.
+        """
+        tokens = self._tokenize(expression)
+        output = Queue() # Сюда попадает итоговый результат
+        stack = Stack()  # Здесь временно 'ждут' операторы
+        
+        while not tokens.is_empty():
+            t = tokens.dequeue()
+            # Если число — сразу в выходную очередь
+            if t.replace('.', '', 1).isdigit():
+                output.enqueue(t)
+            elif t == '(': 
+                stack.push(t)
+            elif t == ')':
+                # Выталкиваем всё до открывающей скобки
+                while not stack.is_empty() and stack.peek() != '(':
+                    output.enqueue(stack.pop())
+                stack.pop() # Удаляем '('
+            else:
+                # Сравнение приоритетов операторов
+                while (not stack.is_empty() and stack.peek() != '(' and 
+                       self.precedence.get(stack.peek(), 0) >= self.precedence.get(t, 0)):
+                    # Исключение для правоассоциативных операций
+                    if t in ('**', '~') and stack.peek() == t: break
+                    output.enqueue(stack.pop())
+                stack.push(t)
+        
+        # Довыгружаем оставшиеся операторы
+        while not stack.is_empty(): 
+            output.enqueue(stack.pop())
+        
+        # Превращаем очередь узлов в итоговую строку
+        res = ""
+        while not output.is_empty(): res += str(output.dequeue()) + " "
+        return res.strip()
+
+    def calculate(self, expression):
+        """
+        Вычисление постфиксного выражения через стек вычислений.
+        """
+        postfix = self.to_postfix(expression)
+        tokens = postfix.split() # Разбиение строки результата
+        s = Stack()
+        
+        for t in tokens:
+            if t.replace('.', '', 1).isdigit():
+                s.push(float(t))
+            elif t == '~': # Применяем смену знака к одному числу
+                s.push(-s.pop())
+            else:
+                # Бинарная операция: достаем два числа
+                b, a = s.pop(), s.pop()
+                if t == '+': s.push(a + b)
+                elif t == '-': s.push(a - b)
+                elif t == '*': s.push(a * b)
+                elif t == '/': s.push(a / b)
+                elif t == '**': s.push(a ** b)
+        
+        return float(s.pop()) # Итоговый результат — единственный элемент в стеке
+
+# --- ДЕМОНСТРАЦИЯ И ТЕСТЫ ---
+
+def run_benchmark():
+    """Пункт 4: Замер времени для подтверждения O(1) операций."""
+    print("\n--- Пункт 4: Замер времени (10,000 операций) ---")
+    s, q = Stack(), Queue()
+    n = 10000
+    
+    start = time.time()
+    for i in range(n): s.push(i)
+    for i in range(n): s.pop()
+    print(f"Stack (Push/Pop): {time.time() - start:.5f} сек (Константное время O(1))")
+    
+    start = time.time()
+    for i in range(n): q.enqueue(i)
+    for i in range(n): q.dequeue()
+    print(f"Queue (Enq/Deq): {time.time() - start:.5f} сек (Константное время O(1))")
+
+if __name__ == "__main__":
+    calc = LinkedListCalculator()
+    
+    # 1. Замеры производительности
+    run_benchmark()
+
+    # 2. Пункт 5: 8 тестов разной сложности
+    print("\n--- Пункт 5: Тестирование 8 выражений ---")
+    test_cases = [
+        "10 + 5 * 2",            # Приоритеты
+        "(10 + 5) * 2",          # Скобки
+        "2 ** 3 ** 2",           # Степень (справа налево)
+        "-10 + 20",              # Унарный минус в начале
+        "15.5 / 2",              # Вещественные числа
+        "((2 + 3) * 2) ** 2",    # Вложенные скобки
+        "10 - -5",               # Унарный минус после оператора
+        "2 * 3 + 4 / 2"          # Смешанные операции
+    ]
+    
+    for expr in test_cases:
+        print(f"Infix: {expr:<20} | Result: {calc.calculate(expr)}")
+
+    # 3. Пользовательский ввод
+    print("\n--- Пользовательский ввод ---")
+    user_expr = input("Введите ваше инфиксное выражение: ")
+    try:
+        print(f"Постфиксная форма: {calc.to_postfix(user_expr)}")
+        print(f"Результат: {calc.calculate(user_expr)}")
+    except Exception as e:
+        print(f"Ошибка ввода или вычисления: {e}")
