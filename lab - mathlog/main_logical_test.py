@@ -315,3 +315,296 @@ calculate:       O(n) - суммарно
 # Покажите трассировку алгоритма, состояние стека и выходного списка, для выражения: - 2 + 3.5 ** 2 ** 1 * ( 4 - -1 ).
 # Проверьте работу через calculate(...) минимум на 5 выражениях, включая унарный минус и возведение в степень.
 # Обработайте ошибки: несбалансированные скобки, неизвестные токены, пустое выражение.
+
+
+
+
+
+
+
+
+
+
+
+"""
+№ 2 – Вычислитель постфиксного выражения с историей
+"""
+
+class Node:
+    def __init__(self, data):
+        self.data = data
+        self.next = None
+
+class Stack:
+    def __init__(self):
+        self.top = None
+    
+    def push(self, data):
+        node = Node(data)
+        node.next = self.top
+        self.top = node
+    
+    def pop(self):
+        if self.top is None:
+            raise IndexError("empty")
+        data = self.top.data
+        self.top = self.top.next
+        return data
+    
+    def is_empty(self):
+        return self.top is None
+
+
+class HistoryNode:
+    def __init__(self, expr, res):
+        self.expr = expr
+        self.res = res
+        self.next = None
+        self.prev = None
+
+
+class PostfixCalculator:
+    def __init__(self, k=10):
+        self.k = k
+        self.head = None
+        self.tail = None
+        self.size = 0
+    
+    def _is_number(self, token):
+        try:
+            float(token)
+            return True
+        except ValueError:
+            return False
+    
+    def evaluate(self, expr): # 1.1
+        if not expr or expr.strip() == '':
+            raise ValueError("Пустое выражение")
+        
+        tokens = expr.split()
+        stack = Stack()
+        ops = {'+', '-', '*', '/', '**'}
+        
+        for token in tokens:
+            if self._is_number(token):
+                stack.push(float(token))
+            elif token in ops: # Ошибка: недостаток операндов
+                if stack.is_empty():
+                    raise ValueError(f"Недостаточно операндов для '{token}'")
+                b = stack.pop()
+                if stack.is_empty():
+                    raise ValueError(f"Недостаточно операндов для '{token}'")
+                a = stack.pop()
+                
+                if token == '+': stack.push(a + b)
+                elif token == '-': stack.push(a - b)
+                elif token == '*': stack.push(a * b)
+                elif token == '/':
+                    if b == 0: # Ошибка: деление на ноль
+                        raise ZeroDivisionError("Деление на ноль")
+                    stack.push(a / b)
+                elif token == '**':
+                    stack.push(a ** b)
+            else:
+                raise ValueError(f"Неизвестный токен: '{token}'")
+        
+        if stack.is_empty():
+            raise ValueError("Некорректное выражение")
+        
+        result = stack.pop()
+        
+        if not stack.is_empty(): # Ошибка: лишние операнды
+            raise ValueError("Лишние операнды в стеке")
+        
+        self._add_to_history(expr, result)
+        return result
+    
+    def _add_to_history(self, expr, res): # 1.2
+        node = HistoryNode(expr, res)
+        node.next = self.head
+        if self.head:
+            self.head.prev = node
+        self.head = node
+        if self.tail is None:
+            self.tail = node
+        self.size += 1
+        
+        if self.size > self.k:
+            self.tail = self.tail.prev
+            if self.tail:
+                self.tail.next = None
+            self.size -= 1
+    
+    def history(self): # 1.3
+        result = []
+        cur = self.head
+        while cur:
+            result.append((cur.expr, cur.res))
+            cur = cur.next
+        return result
+    
+    def undo(self): # 1.4
+        if self.head is None:
+            raise IndexError("Нет записей для отмены")
+        expr, res = self.head.expr, self.head.res
+        self.head = self.head.next
+        if self.head:
+            self.head.prev = None
+        else:
+            self.tail = None
+        self.size -= 1
+        return (expr, res)
+
+
+# Демонстрация
+print("="*60)
+print("ДЕМОНСТРАЦИЯ РАБОТЫ (k=5)")
+print("="*60)
+
+calc = PostfixCalculator(k=5)
+
+exprs = [
+    "3 5 +",
+    "10 2 /",
+    "4 2 **",
+    "5 1 2 + *",
+    "8 2 3 * +",
+    "15 3 / 2 *",
+    "7 2 - 3 *",
+]
+
+for i, e in enumerate(exprs, 1):
+    try:
+        res = calc.evaluate(e)
+        print(f"{i}. {e} = {res}")
+    except Exception as err:
+        print(f"{i}. {e} = ОШИБКА: {err}")
+
+print("\nИСТОРИЯ (от новых к старым):")
+for e, r in calc.history():
+    print(f"  {e} = {r}")
+
+print("\nОТМЕНА 2 вычислений:")
+for _ in range(2):
+    e, r = calc.undo()
+    print(f"  Отменено: {e} = {r}")
+
+print("\nИСТОРИЯ ПОСЛЕ ОТМЕНЫ:")
+for e, r in calc.history():
+    print(f"  {e} = {r}")
+
+print("\nНОВЫЕ ВЫЧИСЛЕНИЯ:")
+calc.evaluate("100 10 /")
+calc.evaluate("2 3 4 * +")
+for e, r in calc.history():
+    print(f"  {e} = {r}")
+
+
+# Тесты
+print("\n" + "="*60)
+print("ТЕСТЫ")
+print("="*60)
+
+def test(cond, msg):
+    if cond:
+        print(f"  ✓ {msg}")
+    else:
+        print(f"  ✗ {msg}")
+
+calc2 = PostfixCalculator(k=3)
+
+# Тест 1: базовые операции
+test(calc2.evaluate("3 4 +") == 7, "3+4=7")
+test(calc2.evaluate("10 5 -") == 5, "10-5=5")
+test(calc2.evaluate("4 5 *") == 20, "4*5=20")
+test(calc2.evaluate("15 3 /") == 5, "15/3=5")
+test(calc2.evaluate("2 3 **") == 8, "2**3=8")
+
+# Тест 2: сложные выражения
+test(calc2.evaluate("3 4 5 * +") == 23, "3+4*5=23")
+test(calc2.evaluate("5 1 2 + *") == 15, "5*(1+2)=15")
+
+# Тест 3: ограничение истории
+calc3 = PostfixCalculator(k=3)
+calc3.evaluate("1 1 +")
+calc3.evaluate("2 2 +")
+calc3.evaluate("3 3 +")
+calc3.evaluate("4 4 +")
+test(len(calc3.history()) == 3, "История хранит только 3 записи")
+test(calc3.history()[0][0] == "4 4 +", "Новейшая запись - последняя")
+
+# Тест 4: undo
+calc4 = PostfixCalculator(k=5)
+calc4.evaluate("1 1 +")
+calc4.evaluate("2 2 +")
+calc4.evaluate("3 3 +")
+removed = calc4.undo()
+test(removed[0] == "3 3 +" and removed[1] == 6, "Undo удаляет последнюю запись")
+test(len(calc4.history()) == 2, "После undo осталось 2 записи")
+
+# Тест 5: ошибки
+calc5 = PostfixCalculator(k=3)
+try:
+    calc5.evaluate("5 0 /")
+    test(False, "Деление на ноль -> ZeroDivisionError")
+except ZeroDivisionError:
+    test(True, "Деление на ноль обработано")
+
+try:
+    calc5.evaluate("5 +")
+    test(False, "Недостаточно операндов -> ValueError")
+except ValueError:
+    test(True, "Недостаточно операндов обработано")
+
+try:
+    calc5.evaluate("")
+    test(False, "Пустое выражение -> ValueError")
+except ValueError:
+    test(True, "Пустое выражение обработано")
+
+try:
+    calc5.undo()
+    test(False, "Undo на пустой истории -> IndexError")
+except IndexError:
+    test(True, "Undo на пустой истории обработан")
+
+# ==================== РУЧНОЙ ВВОД ====================
+user_input = input("\nВведите постфиксное выражение (через пробел): ")
+try:
+    # Используем уже созданный в коде объект calc или создаем новый
+    calc_input = PostfixCalculator(k=10)
+    result = calc_input.evaluate(user_input)
+    print(f"Результат вашего выражения: {result}")
+except Exception as e:
+    print(f"Произошла ошибка: {e}")
+
+
+# ==================== АСИМПТОТИЧЕСКАЯ СЛОЖНОСТЬ (КОММЕНТАРИЙ) ====================
+""" 
+АСИМПТОТИЧЕСКАЯ СЛОЖНОСТЬ:
+
+evaluate(expr):  O(m) - m токенов, каждый обрабатывается 1 раз
+history():       O(k) - обход списка из k записей
+undo():          O(1) - удаление головы списка
+_add_to_history(): O(1) - вставка в начало
+_remove_oldest():  O(1) - удаление хвоста
+
+ПОЧЕМУ СВЯЗНЫЙ СПИСОК, А НЕ deque?
+- Вставка в начало (head): O(1)
+- Удаление с конца (tail): O(1)
+- Удаление с начала (undo): O(1)
+- Доступ по индексу не нужен, только последовательный обход
+- Связный список даёт те же O(1) для нужных операций, что и deque,
+  но наглядно демонстрирует работу с динамическими структурами из лекции
+"""
+
+# № 2 – Вычислитель постфиксного выражения с историей
+# 
+# На основе evaluate_postfix создайте класс PostfixCalculator, который:
+# вычисляет значение постфиксного выражения, переданного строкой (токены разделены пробелами);
+# хранит историю последних k вычислений (выражение → результат) в виде структуры на основе связного списка с ограниченной длиной, параметр k задаётся при создании объекта;
+# поддерживает метод history(), возвращающий историю в виде списка пар (выражение, результат) от новейшего к старейшему;
+# поддерживает метод undo(), отменяющий последнее вычисление и удаляющий его из истории.
+# Продемонстрируйте работу: выполните не менее 7 вычислений, затем вызовите history() и undo().
+# Корректно обработайте деление на ноль, недостаточное количество операндов и переполнение стека.
+# Напишите минимум 5 тестов, через assert или unittest, покрывающих граничные случаи.
