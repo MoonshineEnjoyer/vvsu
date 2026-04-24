@@ -1,572 +1,114 @@
-while True:
-    password = input("\nВведите пароль: ")
-    errors = []
+class PrefixCalculator:
+    def __init__(self):
+        # Словарь приоритетов
+        self.precedence = {'+': 1, '-': 1, '*': 2, '/': 2, '**': 3}
 
-    # 1. Проверка длины
-    if len(password) < 8:
-        errors.append("Пароль слишком короткий (минимум 8 символов)")
+    def _tokenize(self, expr):
+        """Ручной разбор строки на числа, операторы и скобки."""
+        tokens = []
+        i = 0
+        while i < len(expr):
+            char = expr[i]
+            if char.isspace():
+                i += 1
+                continue
+            # Сборка числа (целого или вещественного)
+            if char.isdigit() or char == '.':
+                num = ""
+                while i < len(expr) and (expr[i].isdigit() or expr[i] == '.'):
+                    num += expr[i]
+                    i += 1
+                tokens.append(num)
+                continue
+            # Сборка оператора степени
+            if expr[i:i+2] == '**':
+                tokens.append('**')
+                i += 2
+                continue
+            # Остальные одиночные символы
+            tokens.append(char)
+            i += 1
+        return tokens
 
-    # 2. Проверка заглавной латиницы (диапазон A-Z)
-    if not any('A' <= char <= 'Z' for char in password):
-        errors.append("Нет заглавных латинских букв (A-Z)")
-
-    # 3. Проверка строчной латиницы (диапазон a-z)
-    if not any('a' <= char <= 'z' for char in password):
-        errors.append("Нет строчных латинских букв (a-z)")
-
-    # 4. Проверка цифр
-    if not any('0' <= char <= '9' for char in password):
-        errors.append("Нет цифр")
-
-    # 5. Проверка на пробелы
-    if " " in password:
-        errors.append("Пароль содержит пробелы")
-
-    # Вывод результата
-    if not errors:
-        print("✅ Пароль надежный!")
-    else:
-        print("❌ Ошибки:")
-        for error in errors:
-            print(f"- {error}")
-
-    # Повтор
-    choice = input("\nХотите попробовать еще раз? (да/нет): ").strip().lower()
-    if choice != 'да':
-        print("До свидания!")
-        break
-
-# 1. Создание каталога (список словарей)
-catalog = [
-    {"title": "Война и мир", "author": "Лев Толстой", "year": 1869, "genre": "Роман"},
-    {"title": "Анна Каренина", "author": "Лев Толстой", "year": 1877, "genre": "Роман"},
-    {"title": "Преступление и наказание", "author": "Федор Достоевский", "year": 1866, "genre": "Роман"},
-    {"title": "Идиот", "author": "Федор Достоевский", "year": 1868, "genre": "Роман"},
-    {"title": "Мастер и Маргарита", "author": "Михаил Булгаков", "year": 1967, "genre": "Мистика"},
-    {"title": "Собачье сердце", "author": "Михаил Булгаков", "year": 1925, "genre": "Повесть"},
-    {"title": "Евгений Онегин", "author": "Александр Пушкин", "year": 1833, "genre": "Роман в стихах"},
-    {"title": "Капитанская дочка", "author": "Александр Пушкин", "year": 1836, "genre": "Повесть"},
-    {"title": "Мертвые души", "author": "Николай Гоголь", "year": 1842, "genre": "Поэма"},
-    {"title": "Ревизор", "author": "Николай Гоголь", "year": 1836, "genre": "Комедия"}
-]
-
-while True:
-    # 2. Запрос имени автора
-    search_author = input("\nВведите имя автора для поиска: ").strip().lower()
-    
-    # 3. Поиск книг (без учета регистра)
-    results = []
-    for book in catalog:
-        if search_author == book["author"].lower():
-            results.append(book)
+    def infix_to_prefix(self, expression):
+        """Перевод инфиксной записи в префиксную через инверсию."""
+        tokens = self._tokenize(expression)
+        
+        # 1. Разворачиваем список токенов
+        tokens = tokens[::-1]
+        
+        # 2. Инвертируем скобки
+        for i in range(len(tokens)):
+            if tokens[i] == '(': tokens[i] = ')'
+            elif tokens[i] == ')': tokens[i] = '('
+        
+        # 3. Алгоритм сортировочной станции
+        output = []
+        stack = []
+        for token in tokens:
+            # Если токен - число
+            if token.replace('.', '', 1).isdigit():
+                output.append(token)
+            elif token == '(':
+                stack.append(token)
+            elif token == ')':
+                while stack and stack[-1] != '(':
+                    output.append(stack.pop())
+                if stack: stack.pop()
+            else:
+                # Для префиксной записи: строгое '>' при сравнении приоритетов
+                while (stack and stack[-1] != '(' and 
+                       self.precedence.get(stack[-1], 0) > self.precedence.get(token, 0)):
+                    output.append(stack.pop())
+                stack.append(token)
+        
+        while stack:
+            output.append(stack.pop())
             
-    # 4. Вывод результатов
-    if results:
-        print(f"\nНайдено книг: {len(results)}")
-        for i, book in enumerate(results, 1):
-            print(f"{i}. '{book['title']}', Автор: {book['author']}, Год: {book['year']}, Жанр: {book['genre']}")
-    else:
-        print("❌ Книги автора не найдены")
-
-    # 5. Предложение продолжить
-    choice = input("\nХотите повторить поиск? (да/нет): ").strip().lower()
-    if choice != 'да':
-        print("Программа завершена. Всего доброго!")
-        break
-
-
-class Car:
-    # Общий атрибут для всех объектов класса
-    wheels = 4
-
-    def __init__(self, brand, model, year, color, mileage, fuel_level):
-        # 6 атрибутов, описывающих объект
-        self.brand = brand
-        self.model = model
-        self.year = year
-        self.color = color
-        self.mileage = mileage
-        self.fuel_level = fuel_level
-
-    # 1. Метод возвращает строку с краткой инфой
-    def get_info(self):
-        return f"{self.brand} {self.model} ({self.year})"
-
-    # 2. Метод возвращает полный статус
-    def get_status(self):
-        return f"Цвет: {self.color}, Пробег: {self.mileage}км, Топливо: {self.fuel_level}%"
-
-    # 3. Метод меняет значение атрибута (пробег)
-    def drive(self, distance):
-        self.mileage += distance
-        return f"Проехали {distance} км. Новый пробег: {self.mileage}"
-
-    # 4. Метод меняет значение атрибута (заправка)
-    def refuel(self, amount):
-        self.fuel_level = min(100, self.fuel_level + amount)
-        return f"Заправились на {amount}%. Уровень топлива: {self.fuel_level}%"
-
-# Создаем 2 экземпляра класса с разными значениями
-car1 = Car("Toyota", "Camry", 2021, "Черный", 45000, 60)
-car2 = Car("Tesla", "Model 3", 2023, "Белый", 5000, 100)
-
-# Добавляем уникальный атрибут только для первого экземпляра (не описан в классе)
-car1.owner_name = "Алексей"
-
-# Вывод информации
-print(f"Авто 1: {car1.get_info()} | {car1.get_status()} | Владелец: {car1.owner_name}")
-print(f"Авто 2: {car2.get_info()} | {car2.get_status()}")
-
-# Демонстрация работы методов
-print(car1.drive(150))
-print(car2.refuel(10))
-
-
-ЛАБОРАТОРНАЯ 3=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-import sys
-import array
-import ctypes
-import time
-
-sys.setrecursionlimit(200000)
-
-# 1 задание; пункт 1
-num = 10
-text = "Привет"
-my_list = [1, 2, 3]
-print("Число:", num, type(num), id(num), sys.getsizeof(num))
-print("Строка:", text, type(text), id(text), sys.getsizeof(text))
-print("Список:", my_list, type(my_list), id(my_list), sys.getsizeof(my_list))
-
-# 1 задание; пункт 2
-a = [10, 20]
-b = a
-print("a и b - это один объект", a is b)
-
-# 1 задание, неизменяемое число; пункт 3
-x = 5
-y = x
-x = 10
-print("результат после x = 10: x =", x, "y =", y)
-
-# 1 задание, изменяемый список; пункт 3
-list1 = [1]
-list2 = list1
-list1.append(2)
-print("результат после append: list1 =", list1, "list2 =", list2)
-
-
-# 2 задание, подсчёт памяти; пункт 1
-def memory(obj, seen=None):
-    if seen is None:
-        seen = set()
-    if id(obj) in seen:
-        return 0
-    seen.add(id(obj))
-    size = sys.getsizeof(obj)
-    if isinstance(obj, (list, tuple, dict, set)):
-        items = obj.values() if isinstance(obj, dict) else obj
-        for item in items:
-            size += memory(item, seen)
-    return size
-
-
-test = [1, [2, 3], "пайтон"]
-print("размер объекта:", memory(test), "байт")
-
-# 2 задание, создание арреем массива из 10 чисел и вычисление теоретического адреса для каждого элемента со сравнением с реальным; пункт 2
-nums = array.array("i", range(10))
-base, length = nums.buffer_info()
-item_size = nums.itemsize
-print("Базовый адрес массива:", base)
-for i in range(len(nums)):
-    theor = base + i * item_size
-    real = ctypes.addressof(ctypes.c_int.from_buffer(nums, i * item_size))
-    print(
-        "число: ",
-        i,
-        ". Теоретический адрес = ",
-        theor,
-        ". Реальный адрес = ",
-        real,
-        sep="",
-    )
-
-
-# 3 задание, брутфорс
-def find_max_brute_force(arr):
-    n = len(arr)
-    for i in range(n):
-        is_max = True
-        for j in range(n):
-            if arr[j] > arr[i]:
-                is_max = False
-                break
-        if is_max:
-            return arr[i]
-
-
-test3_1 = [10, 5, 2, 7, 1354, 3]
-test3_1_max = find_max_brute_force(test3_1)
-print(test3_1_max)
-
-
-# 3 задание, Greedy
-def find_max_greedy(arr):
-    max_val = arr[0]
-    for x in arr:
-        if x > max_val:
-            max_val = x
-    return max_val
-
-
-test3_2 = [102, 75, 24, 7, 134, 31]
-test3_2_max = find_max_brute_force(test3_2)
-print(test3_2_max)
-
-
-# 3 задание, Divide & Conquer
-def find_max_divide_conquer(arr, low, high):
-    if low == high:
-        return arr[low]
-    mid = (low + high) // 2
-    left_max = find_max_divide_conquer(arr, low, mid)
-    right_max = find_max_divide_conquer(arr, mid + 1, high)
-    return left_max if left_max > right_max else right_max
-
-
-test3_3 = [140, 54, 22, 77, 154, 311]
-test3_3_max = find_max_brute_force(test3_3)
-print(test3_3_max)
-
-
-# 3 задание, DP
-def find_max_dp(arr):
-    n = len(arr)
-    dp = [0] * n
-    dp[0] = arr[0]
-    for i in range(1, n):
-        dp[i] = max(dp[i - 1], arr[i])
-    return dp[n - 1]
-
-
-test3_4 = [140, 542, 222, 771, 1314, 3141]
-test3_4_max = find_max_brute_force(test3_4)
-print(test3_4_max)
-
-# 3 задание, проверка
-n = 100000
-arr = [i for i in range(n)]
-
-# Greedy
-start = time.perf_counter()
-find_max_greedy(arr)
-print(
-    "Greedy",
-    ". Сложность: O(n)",
-    ". Время: ",
-    time.perf_counter() - start,
-    " сек",
-    sep="",
-)
-
-# Divide & Conquer
-start = time.perf_counter()
-find_max_divide_conquer(arr, 0, n - 1)
-print(
-    "Divide & Conquer",
-    ". Сложность: O(n)",
-    ". Время: ",
-    time.perf_counter() - start,
-    " сек",
-    sep="",
-)
-
-# DP
-start = time.perf_counter()
-find_max_dp(arr)
-print(
-    "DP", ". Сложность: O(n)", ". Время: ", time.perf_counter() - start, " сек", sep=""
-)
-
-# Brute Force
-start = time.perf_counter()
-find_max_brute_force(arr)
-print(
-    "Brute Force",
-    ". Сложность: O(n^2)",
-    ". Время: ",
-    time.perf_counter() - start,
-    " сек",
-    sep="",
-)
-
-
-import time
-import random
-
-# 1. Базовая версия
-def bubble_sort_basic(arr):
-    n = len(arr)
-    for i in range(n):
-        for j in range(0, n - i - 1):
-            if arr[j] > arr[j + 1]:
-                arr[j], arr[j + 1] = arr[j + 1], arr[j]
-    return arr
-
-# 2. С флагом раннего выхода
-def bubble_sort_flag(arr):
-    n = len(arr)
-    for i in range(n):
-        swapped = False
-        for j in range(0, n - i - 1):
-            if arr[j] > arr[j + 1]:
-                arr[j], arr[j + 1] = arr[j + 1], arr[j]
-                swapped = True
-        if not swapped: # Если обменов не было — массив отсортирован
-            break
-    return arr
-
-# 3. С ограничением границы последнего обмена
-def bubble_sort_limit(arr):
-    n = len(arr)
-    while n > 1:
-        new_n = 0
-        for i in range(n - 1):
-            if arr[i] > arr[i + 1]:
-                arr[i], arr[i + 1] = arr[i + 1], arr[i]
-                new_n = i + 1 # Запоминаем последнее место обмена
-        n = new_n # Дальше этой границы всё уже отсортировано
-    return arr
-
-# Функция для тестирования
-def test_sorting():
-    n = 5000
-    test_cases = {
-        "Отсортированный": list(range(n)),
-        "Случайный": [random.randint(0, n) for _ in range(n)],
-        "Обратный": list(range(n, 0, -1))
-    }
-    
-    sorts = [
-        ("Базовая", bubble_sort_basic),
-        ("С флагом", bubble_sort_flag),
-        ("С границей", bubble_sort_limit)
-    ]
-
-    for case_name, data in test_cases.items():
-        print(f"\n--- Массив: {case_name} ---")
-        for sort_name, func in sorts:
-            arr_copy = data.copy()
-            start = time.perf_counter()
-            func(arr_copy)
-            end = time.perf_counter()
-            print(f"{sort_name:12}: {end - start:.4f} сек")
-
-test_sorting()
-
-
-
-
-
-import math
-
-# 1. Линейный поиск
-def linear_search(arr, target):
-    comparisons = 0
-    for i in range(len(arr)):
-        comparisons += 1
-        if arr[i] == target:
-            return True, comparisons
-    return False, comparisons
-
-# 2. Бинарный поиск (только для отсортированного массива!)
-def binary_search(arr, target):
-    comparisons = 0
-    low = 0
-    high = len(arr) - 1
-    
-    while low <= high:
-        comparisons += 1
-        mid = (low + high) // 2
-        if arr[mid] == target:
-            return True, comparisons
-        elif arr[mid] < target:
-            low = mid + 1
-        else:
-            high = mid - 1
-    return False, comparisons
-
-# Тестирование
-n = 100000
-arr = list(range(n)) # Отсортированный массив
-target = 99999 # Ищем элемент в самом конце
-
-found_l, comp_l = linear_search(arr, target)
-found_b, comp_b = binary_search(arr, target)
-
-print("\n--- Результаты поиска (n=100,000) ---")
-print(f"{'Алгоритм':<15} | {'Цель':<7} | {'Найден?':<8} | {'Сравнений':<10}")
-print("-" * 50)
-print(f"{'Линейный':<15} | {target:<7} | {str(found_l):<8} | {comp_l:<10}")
-print(f"{'Бинарный':<15} | {target:<7} | {str(found_b):<8} | {comp_b:<10}")
-
-
-
-
-
-
-
-class Node:
-    """Класс узла списка"""
-    def __init__(self, data):
-        self.data = data
-        self.next = None
-
-class LinkedList:
-    """Класс односвязного списка"""
-    def __init__(self):
-        self.head = None
-
-    def add_first(self, data):
-        """Вставка в начало списка — O(1)"""
-        new_node = Node(data)
-        new_node.next = self.head
-        self.head = new_node
-
-    def print_list(self):
-        """Печать всех элементов — O(n)"""
-        current = self.head
-        result = []
-        while current:
-            result.append(str(current.data))
-            current = current.next
-        print(" -> ".join(result) + " -> None")
-
-    def length(self):
-        """Возврат количества элементов — O(n)"""
-        count = 0
-        current = self.head
-        while current:
-            count += 1
-            current = current.next
-        return count
-
-    def search(self, target):
-        """Поиск индекса элемента — O(n)"""
-        current = self.head
-        index = 0
-        while current:
-            if current.data == target:
-                return index
-            current = current.next
-            index += 1
-        return -1
-
-# --- Демонстрация работы ---
-ll = LinkedList()
-ll.add_first(30)
-ll.add_first(20)
-ll.add_first(15)
-ll.add_first(10)
-
-print("Текущий список:")
-ll.print_list()
-
-print(f"Поиск элемента 15: индекс {ll.search(15)}")
-print(f"Поиск элемента 99: индекс {ll.search(99)}")
-print(f"Длина списка: {ll.length()}")
-
-
-class Node:
-    def __init__(self, data):
-        self.data = data
-        self.next = None
-
-class LinkedList:
-    def __init__(self):
-        self.head = None
-
-    def add_first(self, data):
-        """Вставка в начало — O(1)"""
-        new_node = Node(data)
-        new_node.next = self.head
-        self.head = new_node
-
-    def add_last(self, data):
-        """Вставка в конец — O(n)"""
-        new_node = Node(data)
-        if not self.head:
-            self.head = new_node
-            return
+        # 4. Разворачиваем результат обратно и склеиваем
+        prefix_list = output[::-1]
+        return " ".join(prefix_list)
+
+    def evaluate_prefix(self, prefix_expr):
+        """Вычисление префиксного выражения (справа налево)."""
+        tokens = prefix_expr.split()
+        stack = []
         
-        current = self.head
-        while current.next: # Идем до последнего узла
-            current = current.next
-        current.next = new_node
-
-    def insert_at(self, position, data):
-        """Вставка на позицию — O(n)"""
-        if position < 0:
-            raise ValueError("Позиция не может быть отрицательной")
+        # Проход по токенам в обратном порядке
+        for i in range(len(tokens) - 1, -1, -1):
+            token = tokens[i]
+            if token.replace('.', '', 1).isdigit():
+                stack.append(float(token))
+            else:
+                if len(stack) < 2:
+                    return "Ошибка: Некорректная префиксная запись"
+                # Извлекаем операнды
+                a = stack.pop()
+                b = stack.pop()
+                
+                if token == '+': stack.append(a + b)
+                elif token == '-': stack.append(a - b)
+                elif token == '*': stack.append(a * b)
+                elif token == '/':
+                    if b == 0: return "Ошибка: Деление на ноль"
+                    stack.append(a / b)
+                elif token == '**': stack.append(a ** b)
         
-        if position == 0:
-            self.add_first(data)
-            return
+        return stack[0] if stack else "Ошибка"
 
-        new_node = Node(data)
-        current = self.head
-        prev = None
-        count = 0
-        
-        # Ищем нужное место или доходим до конца
-        while current and count < position:
-            prev = current
-            current = current.next
-            count += 1
-        
-        # Вставляем между prev и current
-        new_node.next = current
-        prev.next = new_node
+# --- Основной блок выполнения ---
 
-    def remove(self, data):
-        """Удаление по значению — O(n)"""
-        current = self.head
-        prev = None
+calc = PrefixCalculator()
 
-        while current:
-            if current.data == data:
-                if prev:
-                    prev.next = current.next
-                else:
-                    self.head = current.next # Удаляем голову
-                return True
-            prev = current
-            current = current.next
-        return False
+# Запрос ввода у пользователя
+user_expression = input("Введите инфиксное выражение (например, 10 - 2 * (3 + 1)): ")
 
-    def to_list(self):
-        """Преобразование в обычный Python-list — O(n)"""
-        result = []
-        current = self.head
-        while current:
-            result.append(current.data)
-            current = current.next
-        return result
+# Выполнение задач
+prefix_result = calc.infix_to_prefix(user_expression)
+final_value = calc.evaluate_prefix(prefix_result)
 
-# --- Демонстрация по заданию ---
-ll = LinkedList()
-ll.add_last(1)
-ll.add_last(2)
-ll.add_last(3)
-
-print(f"Исходный список: {ll.to_list()}")
-
-# 1. Вставляем 99 на позицию 1
-ll.insert_at(1, 99)
-print(f"После вставки 99 на позицию 1: {ll.to_list()}")
-
-# 2. Удаляем элемент со значением 2
-removed = ll.remove(2)
-print(f"Удаление '2' успешно? {removed}")
-print(f"Итоговый список: {ll.to_list()}")
+# Вывод результатов
+print("-" * 30)
+print(f"Инфиксная запись: {user_expression}")
+print(f"Префиксная запись: {prefix_result}")
+print(f"Результат вычисления: {final_value}")
