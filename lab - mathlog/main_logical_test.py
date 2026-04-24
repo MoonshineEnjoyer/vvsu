@@ -1,158 +1,317 @@
-import sys
-from expr_tree import *
+"""
+Расширенный конвертер инфикс -> постфикс с унарным минусом, **, дробными числами
+Стек на связном списке из лекции
+"""
 
-class WordTokenizer():
-    def __init__(self, s):
-        self.s = s
-        self.cur = 0
+# ==================== СТЕК НА СВЯЗНОМ СПИСКЕ ====================
+class Node:
+    """Узел связного списка"""
+    def __init__(self, data):
+        self.data = data
+        self.next = None
 
-    def __iter__(self):
-        return self
+class Stack:
+    """Стек на основе связного списка"""
+    def __init__(self):
+        self.top = None        # вершина стека (head списка)
+    
+    def push(self, data):      # O(1) - вставка в начало
+        node = Node(data)
+        node.next = self.top
+        self.top = node
+    
+    def pop(self):             # O(1) - удаление из начала
+        if self.top is None:
+            raise IndexError("empty")
+        data = self.top.data
+        self.top = self.top.next
+        return data
+    
+    def peek(self):            # O(1) - просмотр вершины
+        if self.top is None:
+            raise IndexError("empty")
+        return self.top.data
+    
+    def is_empty(self):        # O(1) - проверка пустоты
+        return self.top is None
 
-    def __next__(self):
-        while self.cur < len(self.s):
-            if self.s[self.cur] == ' ':
-                self.cur = self.cur + 1
-            elif self.s[self.cur] == ',':
-                self.cur = self.cur + 1
-                return ","
-            elif self.s[self.cur].isalpha():
-                token = ""
-                while self.cur < len(self.s) and self.s[self.cur].isalpha():
-                    token = token + self.s[self.cur]
-                    self.cur = self.cur + 1
-                return token
+
+# ==================== ПРИОРИТЕТЫ И АССОЦИАТИВНОСТЬ ====================
+# Приоритеты: чем больше число, тем выше
+# ** - приоритет 3 (правоассоциативный)
+# * / - приоритет 2 (левоассоциативные)
+# + - - приоритет 1 (левоассоциативные)
+# u_minus - приоритет 4 (унарный минус, правоассоциативный)
+PRIORITY = {'+': 1, '-': 1, '*': 2, '/': 2, '**': 3, 'u_minus': 4} # 1.2
+ASSOC = {'+': 'L', '-': 'L', '*': 'L', '/': 'L', '**': 'R', 'u_minus': 'R'} # 1.2
+
+
+# ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ, 1.3 ====================
+def is_number(token):
+    """Проверка, является ли токен числом (целым или дробным) - из лекции"""
+    try:
+        float(token)
+        return True
+    except ValueError:
+        return False
+
+
+def tokenize(expr):
+    """
+    РАЗБОР СТРОКИ НА ТОКЕНЫ С УЧЁТОМ УНАРНОГО МИНУСА, 1.1
+    Унарный минус определяется:
+    - в начале выражения
+    - после открывающей скобки
+    - после другого оператора
+    """
+    # Добавляем пробелы вокруг операторов для корректного split (если их нет)
+    if ' ' not in expr:
+        e = expr
+        for op in ['**', '+', '-', '*', '/', '(', ')']:
+            e = e.replace(op, f' {op} ')
+        tokens_raw = e.split()
+    else:
+        tokens_raw = expr.split()
+    
+    tokens = []
+    prev = None
+    for t in tokens_raw:
+        if t == '-':
+            # Минус унарный, если предыдущий токен - оператор, '(' или ничего
+            if prev is None or prev in PRIORITY or prev == '(' or prev == 'u_minus':
+                tokens.append('u_minus')   # заменяем на специальный токен
             else:
-                raise Exception("Unexpected symbol")
-        raise StopIteration
-
-
-class TextParser():
-    def __init__(self, tokens):
-        self.tokens = tokens
-        self.cur = 0
-        self.letter = 'P'
-
-    def calc_expr_tree(self, quantor=False):
-        if self.cur == len(self.tokens):
-            raise Exception("Unexpected end of statement")
-        if self.tokens[self.cur] == "неправда":
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == ",")
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == "что")
-            self.cur = self.cur + 1
-            et = self.calc_expr_tree()
-            return NegExprTree(et)
-        elif self.tokens[self.cur] == "если":
-            self.cur = self.cur + 1
-            arg1 = self.calc_expr_tree()
-            assert(self.tokens[self.cur] == ",")
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == "то")
-            self.cur = self.cur + 1
-            arg2 = self.calc_expr_tree()
-            return BinaryExprTree(BinaryOperation.IMPL, arg1, arg2)
-        elif self.tokens[self.cur] == "из":
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == "того")
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == "факта")
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == ",")
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == "что")
-            self.cur = self.cur + 1
-            arg1 = self.calc_expr_tree()
-            assert(self.tokens[self.cur] == ",")
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == "следует")
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == ",")
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == "что")
-            self.cur = self.cur + 1
-            arg2 = self.calc_expr_tree()
-            return BinaryExprTree(BinaryOperation.IMPL, arg1, arg2)
-        elif self.tokens[self.cur] == "верно":
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == "как")
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == "то")
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == ",")
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == "что")
-            self.cur = self.cur + 1
-            arg1 = self.calc_expr_tree()
-            assert(self.tokens[self.cur] == ",")
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == "так")
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == "и")
-            self.cur = self.cur + 1
-            assert(self.tokens[self.cur] == "что")
-            self.cur = self.cur + 1
-            arg2 = self.calc_expr_tree()
-            return BinaryExprTree(BinaryOperation.CONJ, arg1, arg2)
-       # elif self.tokens[self.cur] == "некоторые":
-       #     self.cur = self.cur + 1
-       #     et = self.calc_expr_tree(True)
-       #     assert(et.get_type() == ExprTreeType.VAR)
-       #     et.var_name = "Exists x " + et.var_name
-       #     return et
-       # elif self.tokens[self.cur] == "все":
-       #     self.cur = self.cur + 1
-       #     et = self.calc_expr_tree(True)
-       #     assert(et.get_type() == ExprTreeType.VAR)
-       #     et.var_name = "All x " + et.var_name
-       #     return et
+                tokens.append('-')          # обычный бинарный минус
         else:
-            if self.tokens[self.cur] == "некоторые":
-                self.cur = self.cur + 1
-                et = self.calc_expr_tree(True)
-                assert(et.get_type() == ExprTreeType.VAR)
-                et.var_name = "Exists x " + et.var_name
-            elif self.tokens[self.cur] == "все":
-                self.cur = self.cur + 1
-                et = self.calc_expr_tree(True)
-                assert(et.get_type() == ExprTreeType.VAR)
-                et.var_name = "All x " + et.var_name
-            else:
-                noun = self.tokens[self.cur]
-                self.cur = self.cur + 1
-                neg = False
-                if self.tokens[self.cur] == "не":
-                    neg = True
-                    self.cur = self.cur + 1
-                verb = self.tokens[self.cur]
-                self.cur = self.cur + 1
-                if self.cur < len(self.tokens) and self.tokens[self.cur] not in ["и", "или", ","]:
-                    verb = verb + " " + self.tokens[self.cur]
-                    self.cur = self.cur + 1
-                et = VarExpr(self.letter + "(x)")
-                self.letter = chr(ord(self.letter) + 1)
-                print(et.var_name, " = '", "x ", verb, "'", sep='')
-                if neg:
-                    # et = NegExprTree(et)
-                    et.var_name = "~" + et.var_name
-            if self.cur < len(self.tokens) and not quantor:
-                if self.tokens[self.cur] == "и":
-                    self.cur = self.cur + 1
-                    et1 = self.calc_expr_tree()
-                    et = BinaryExprTree(BinaryOperation.CONJ, et, et1)
-                elif self.tokens[self.cur] == "или":
-                    self.cur = self.cur + 1
-                    et1 = self.calc_expr_tree()
-                    et = BinaryExprTree(BinaryOperation.DISJ, et, et1)
-            return et
+            tokens.append(t)
+        prev = tokens[-1]
+    return tokens
 
 
-f = open('input.txt', 'r')
-s = f.readline()
-print(s)
-tokens = list(WordTokenizer(s))
-#print(tokens)
-tp = TextParser(tokens)
-et = tp.calc_expr_tree()
-et.print(sys.stdout)
+# ==================== АЛГОРИТМ СОРТИРОВОЧНОЙ СТАНЦИИ ДЕЙКСТРЫ ====================
+def infix_to_postfix(expression, trace=False):
+    """
+    ПРЕОБРАЗОВАНИЕ ИНФИКСНОЙ ЗАПИСИ В ПОСТФИКСНУЮ (ОБРАТНУЮ ПОЛЬСКУЮ)
+    Алгоритм из лекции: числа -> выход, операторы -> стек с учётом приоритетов
+    """
+    # Проверка на пустое выражение
+    if not expression or expression.strip() == '':
+        raise ValueError("Пустое выражение")
+    
+    tokens = tokenize(expression)      # получаем токены с учётом унарных минусов
+    output = []                         # выходная очередь (постфиксная запись)
+    stack = Stack()                     # стек операторов (на связном списке)
+    
+    # Трассировка для визуализации работы алгоритма
+    if trace:
+        print(f"\nТрассировка: {expression}")
+        print(f"{'Токен':<12} {'Действие':<30} {'Стек':<20} {'Выход'}")
+        print("-"*70)
+    
+    for token in tokens:
+        # СЛУЧАЙ 1: Число -> сразу в выход (из лекции)
+        if is_number(token):
+            output.append(token)
+            action = "число -> выход"
+        
+        # СЛУЧАЙ 2: Унарный минус -> в стек (как оператор)
+        elif token == 'u_minus':
+            stack.push('u_minus')
+            action = "унарный - -> стек"
+        
+        # СЛУЧАЙ 3: Открывающая скобка -> в стек (из лекции)
+        elif token == '(':
+            stack.push(token)
+            action = "'(' -> стек"
+        
+        # СЛУЧАЙ 4: Закрывающая скобка (из лекции)
+        elif token == ')':
+            # Выталкиваем всё до '('
+            while not stack.is_empty() and stack.peek() != '(':
+                output.append(stack.pop())
+            # Проверка на лишнюю скобку
+            if stack.is_empty() or stack.peek() != '(':
+                raise ValueError("Лишняя ')'")
+            stack.pop()      # удаляем '('
+            action = "выталкиваем до '('"
+        
+        # СЛУЧАЙ 5: Оператор (из лекции с доработкой для правоассоциативности)
+        elif token in PRIORITY:
+            # Выталкиваем операторы с бОльшим или равным приоритетом
+            # НО для правоассоциативных (R) - только с бОльшим
+            while (not stack.is_empty() and stack.peek() != '(' and 
+                   stack.peek() in PRIORITY):
+                top = stack.peek()
+                # Левоассоциативный: выталкиваем при >=
+                if (ASSOC.get(token, 'L') == 'L' and 
+                    PRIORITY[top] >= PRIORITY[token]):
+                    output.append(stack.pop())
+                # Правоассоциативный: выталкиваем только при >
+                elif (ASSOC.get(token, 'L') == 'R' and 
+                      PRIORITY[top] > PRIORITY[token]):
+                    output.append(stack.pop())
+                else:
+                    break
+            stack.push(token)
+            action = f"{token} -> стек"
+        
+        # СЛУЧАЙ 6: Проверка, неизвестный токен - ошибка
+        else:
+            raise ValueError(f"Неизвестный токен '{token}'")
+        
+        # Вывод трассировки (состояние стека и выхода)
+        if trace:
+            s = []
+            cur = stack.top
+            while cur:
+                s.append(str(cur.data))
+                cur = cur.next
+            print(f"{token:<12} {action:<30} {str(s):<20} {' '.join(output)}")
+    
+    # После обработки всех токенов: выталкиваем всё из стека в выход (из лекции)
+    while not stack.is_empty():
+        top = stack.pop()
+        if top == '(':
+            raise ValueError("Не хватает ')'")
+        output.append(top)
+        if trace:
+            s = []
+            cur = stack.top
+            while cur:
+                s.append(str(cur.data))
+                cur = cur.next
+            print(f"{'':<12} {'выталкиваем ' + top:<30} {str(s):<20} {' '.join(output)}")
+    
+    if trace:
+        print(f"\nПостфикс: {' '.join(output)}\n")
+    
+    return output
+
+
+# ==================== ВЫЧИСЛЕНИЕ ПОСТФИКСНОГО ВЫРАЖЕНИЯ ====================
+def evaluate_postfix(tokens):
+    """
+    ВЫЧИСЛЕНИЕ ПОСТФИКСНОЙ ЗАПИСИ (ОБРАТНОЙ ПОЛЬСКОЙ)
+    Алгоритм из лекции: операнды в стек, при операторе - два верхних, результат обратно
+    """
+    stack = []
+    for token in tokens:
+        # Число -> кладём в стек
+        if is_number(token):
+            stack.append(float(token))
+        # Унарный минус -> берём один операнд, меняем знак
+        elif token == 'u_minus':
+            stack.append(-stack.pop())
+        # Бинарный оператор -> берём два операнда, вычисляем, результат в стек
+        elif token in PRIORITY:
+            b = stack.pop()      # второй операнд (правый)
+            a = stack.pop()      # первый операнд (левый)
+            if token == '+': stack.append(a + b)
+            elif token == '-': stack.append(a - b)
+            elif token == '*': stack.append(a * b)
+            elif token == '/': stack.append(a / b)
+            elif token == '**': stack.append(a ** b)
+    return stack[0]              # в стеке остаётся результат
+
+
+# ==================== ГЛАВНАЯ ФУНКЦИЯ ВЫЧИСЛЕНИЯ ====================
+def calculate(expression, trace=False):
+    """
+    ВЫЧИСЛЕНИЕ ИНФИКСНОГО ВЫРАЖЕНИЯ
+    Сначала преобразуем в постфикс, затем вычисляем
+    """
+    postfix = infix_to_postfix(expression, trace)
+    return evaluate_postfix(postfix)
+
+
+# ==================== ТРАССИРОВКА ДЛЯ ЗАДАННОГО ВЫРАЖЕНИЯ ====================
+print("="*70)
+print("ТРАССИРОВКА ЗАДАННОГО ВЫРАЖЕНИЯ: -2 + 3.5 ** 2 ** 1 * (4 - -1)")
+calculate("- 2 + 3.5 ** 2 ** 1 * ( 4 - -1 )", trace=True)
+
+
+# ==================== ТЕСТИРОВАНИЕ НА 5+ ВЫРАЖЕНИЯХ ====================
+print("\n" + "="*70)
+print("ТЕСТИРОВАНИЕ")
+print("="*70)
+
+tests = [
+    ("-3 + 5", 2.0, "унарный минус в начале"),
+    ("(-2 * 4)", -8.0, "унарный минус в скобках"),
+    ("2 ** 3 ** 2", 512.0, "правая ассоциативность ** (2^(3^2)=512)"),
+    ("3.5 ** 2 * (4 - -1)", 61.25, "дробные числа и унарный минус"),
+    ("- 2 + 3.5 ** 2 ** 1 * ( 4 - -1 )", 59.25, "полное выражение из задания"),
+    ("( 10 - 2 ) * ( 3 + 1 )", 32.0, "скобки и бинарные операторы"),
+]
+
+for expr, exp, desc in tests:
+    try:
+        res = calculate(expr)
+        print(f"{desc:40} {expr:35} = {res:10} (ожид: {exp}) {'✓' if abs(res-exp)<1e-9 else '✗'}")
+    except Exception as e:
+        print(f"{desc:40} {expr:35} = ОШИБКА: {e}")
+
+
+# ==================== ОБРАБОТКА ОШИБОК ====================
+print("\n" + "="*70)
+print("ОБРАБОТКА ОШИБОК")
+print("="*70)
+
+# Проверка различных ошибочных ситуаций
+errors = [
+    ("(3+4", "не хватает закрывающей скобки"),
+    ("3+4)", "лишняя закрывающая скобка"),
+    ("3+@4", "неизвестный токен"),
+    ("", "пустое выражение"),
+    ("   ", "пустое выражение (пробелы)"),
+    ("3/0", "деление на ноль"),
+]
+
+for expr, desc in errors:
+    try:
+        res = calculate(expr)
+        print(f"'{expr}' -> {res} (ОШИБКА НЕ ОБНАРУЖЕНА!)")
+    except Exception as e:
+        print(f"'{expr}' -> {type(e).__name__}: {e}")
+
+# ==================== РУЧНОЙ ВВОД ====================
+user_expr = input("\nВведите ваше математическое выражение: ")
+try:
+    # Запускаем расчет с трассировкой (trace=True)
+    result = calculate(user_expr, trace=True)
+    print(f"Результат: {result}")
+except Exception as e:
+    print(f"Ошибка при вычислении: {e}")
+
+
+# ==================== АСИМПТОТИЧЕСКАЯ СЛОЖНОСТЬ (КОММЕНТАРИЙ) ====================
+"""
+АСИМПТОТИЧЕСКАЯ СЛОЖНОСТЬ:
+
+tokenize:        O(n) - однократный проход по строке
+infix_to_postfix: O(n) - каждый токен обрабатывается 1 раз
+  - push/pop: O(1) на связном списке
+  - амортизированный анализ: каждый оператор входит в стек и выходит 1 раз
+evaluate_postfix: O(n) - линейный проход по токенам
+calculate:       O(n) - суммарно
+
+Итоговая временная сложность: O(n), где n - длина строки выражения
+Итоговая пространственная сложность: O(n) для хранения токенов и стеков
+
+Обоснование: Алгоритм сортировочной станции Дейкстры обрабатывает 
+каждый токен ровно один раз. Операции со стеком (push/pop) выполняются 
+за O(1) благодаря реализации на связном списке. Каждый оператор попадает 
+в стек и выходит из него не более одного раза, поэтому суммарное 
+количество операций линейно относительно количества токенов.
+"""
+
+# № 1 – Расширение конвертера инфиксной записи
+# 
+# Реализуйте расширенную версию функции infix_to_postfix, которая поддерживает:
+# унарный минус, например, -3 + 5, ( -2 * 4 );
+# оператор возведения в степень ** с правой ассоциативностью, т.е. 2 ** 3 ** 2 должно вычисляться как 2 ** (3 ** 2) = 512);
+# дробные числа, токены вида 3.14.
+# Используйте структуру связного списка, классы Node и Stack из лекции вместо встроенного списка Python для стека операторов.
+# Покажите трассировку алгоритма, состояние стека и выходного списка, для выражения: - 2 + 3.5 ** 2 ** 1 * ( 4 - -1 ).
+# Проверьте работу через calculate(...) минимум на 5 выражениях, включая унарный минус и возведение в степень.
+# Обработайте ошибки: несбалансированные скобки, неизвестные токены, пустое выражение.
