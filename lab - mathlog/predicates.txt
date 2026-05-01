@@ -233,3 +233,133 @@ print("Чтобы максимально 'испортить' дерево пр�
 print("чтобы оставшиеся ветви не имели возможности перебалансироваться.")
 print(f"Текущая высота после удалений: {tree.get_height(tree.root)}")
 
+
+
+
+
+
+
+
+
+
+
+
+
+from collections import deque
+
+class Node:
+    def __init__(self, key):
+        self.key = key
+        self.left = None
+        self.right = None
+
+class BST:
+    def __init__(self):
+        self.root = None
+
+    # --- МЕТОДЫ ИЗ ЛЕКЦИЙ ---
+    def insert(self, key):
+        self.root = self._insert(self.root, key)
+
+    def _insert(self, node, key):
+        if node is None:
+            return Node(key)
+        if key < node.key:
+            node.left = self._insert(node.left, key)
+        elif key > node.key:
+            node.right = self._insert(node.right, key)
+        return node
+
+    def delete(self, key):
+        self.root = self._delete(self.root, key)
+
+    def _delete(self, node, key):
+        if node is None:
+            return None
+        if key < node.key:
+            node.left = self._delete(node.left, key)
+        elif key > node.key:
+            node.right = self._delete(node.right, key)
+        else:
+            if node.left is None:
+                return node.right
+            if node.right is None:
+                return node.left
+            successor = self._find_min(node.right)
+            node.key = successor.key
+            node.right = self._delete(node.right, successor.key)
+        return node
+
+    def _find_min(self, node):
+        while node.left:
+            node = node.left
+        return node
+
+    def level_order(self, root):
+        if root is None:
+            return
+        queue = deque([root])
+        while queue:
+            node = queue.popleft()
+            print(node.key, end=' ')
+            if node.left:
+                queue.append(node.left)
+            if node.right:
+                queue.append(node.right)
+
+    def inorder(self, node):
+        if node:
+            self.inorder(node.left)
+            print(node.key, end=' ')
+            self.inorder(node.right)
+
+    def get_height(self, node):
+        if node is None:
+            return 0
+        return 1 + max(self.get_height(node.left), self.get_height(node.right))
+
+# --- ВЫПОЛНЕНИЕ ЗАДАНИЯ №2 ---
+
+keys = [50, 30, 120, 70, 20, 90, 40, 60, 80]
+tree = BST()
+for k in keys:
+    tree.insert(k)
+
+print("=== ИСХОДНОЕ СОСТОЯНИЕ ДЕРЕВА ===")
+print(f"Высота до удалений: {tree.get_height(tree.root)}")
+print("In-order:   ", end=""); tree.inorder(tree.root); print()
+print("Level-order:", end=""); tree.level_order(tree.root); print()
+
+# Последовательное удаление по ТЗ
+to_delete = [20, 30, 50]
+steps = ["Удаление 20 (Лист)", "Удаление 30 (Один потомок)", "Удаление 50 (Два потомка)"]
+
+for i in range(len(to_delete)):
+    val = to_delete[i]
+    print(f"\n--- {steps[i]} ---")
+    tree.delete(val)
+    print(f"Текущая высота: {tree.get_height(tree.root)}")
+    print("m-order (in-order):", end=" "); tree.inorder(tree.root); print()
+    print("level-order:       ", end=" "); tree.level_order(tree.root); print()
+
+# --- ЭКСПЕРИМЕНТАЛЬНОЕ ПОДТВЕРЖДЕНИЕ (Пункт 3) ---
+print("\n=== ЭКСПЕРИМЕНТ (Пункт 3) ===")
+print("Задача: найти порядок удалений, который максимально портит форму (увеличивает высоту относительно числа узлов).")
+
+# Создаем новое дерево для эксперимента
+test_tree = BST()
+for k in [50, 30, 120, 70, 20, 90, 40, 60, 80]:
+    test_tree.insert(k)
+
+initial_h = test_tree.get_height(test_tree.root)
+print(f"Начальная высота (9 узлов): {initial_h}")
+
+# Эксперимент: удаляем узлы, которые делают дерево сбалансированным
+bad_order = [40, 20, 60, 80]
+print(f"Удаляем 'уравновешивающие' узлы: {bad_order}")
+for val in bad_order:
+    test_tree.delete(val)
+
+print(f"Высота после удаления {len(bad_order)} узлов: {test_tree.get_height(test_tree.root)}")
+print("Результат: Дерево стало менее плотным, высота почти не уменьшилась, хотя узлов стало в 2 раза меньше.")
+
