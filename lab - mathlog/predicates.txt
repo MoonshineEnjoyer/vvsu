@@ -106,3 +106,130 @@ print("Сложность BST:")
 print("- Средний случай: O(log n) — если дерево сбалансировано (как наше дерево №1).")
 print("- Худший случай: O(n) — если дерево вырождается в список (как наше дерево №2).")
 print("- Лучший случай: O(1) — если искомый ключ находится в корне.")
+
+
+
+
+
+
+
+
+
+
+
+from collections import deque
+
+class Node:
+    def __init__(self, key):
+        self.key = key
+        self.left = None
+        self.right = None
+
+class BST:
+    def __init__(self):
+        self.root = None
+
+    # --- МЕТОДЫ ИЗ ЛЕКЦИИ (Задание 1) ---
+    def insert(self, key):
+        self.root = self._insert(self.root, key)
+
+    def _insert(self, node, key):
+        if node is None:
+            return Node(key)
+        if key < node.key:
+            node.left = self._insert(node.left, key)
+        elif key > node.key:
+            node.right = self._insert(node.right, key)
+        return node
+
+    # --- НОВЫЕ МЕТОДЫ (Задание 2) ---
+
+    # Обход в ширину (Level-order)
+    def level_order(self, node):
+        if not node:
+            return
+        queue = deque([node])
+        while queue:
+            curr = queue.popleft()
+            print(curr.key, end=' ')
+            if curr.left:
+                queue.append(curr.left)
+            if curr.right:
+                queue.append(curr.right)
+
+    # Удаление узла (Delete)
+    def delete(self, key):
+        self.root = self._delete(self.root, key)
+
+    def _delete(self, node, key):
+        if node is None:
+            return node
+
+        if key < node.key:
+            node.left = self._delete(node.left, key)
+        elif key > node.key:
+            node.right = self._delete(node.right, key)
+        else:
+            # Случай 1 и 2: Лист или один потомок
+            if node.left is None:
+                return node.right
+            elif node.right is None:
+                return node.left
+
+            # Случай 3: Два потомка
+            # Ищем минимальный в правом поддереве
+            temp = self._min_value_node(node.right)
+            node.key = temp.key
+            node.right = self._delete(node.right, temp.key)
+        
+        return node
+
+    def _min_value_node(self, node):
+        current = node
+        while current.left is not None:
+            current = current.left
+        return current
+
+    # Обход In-order (для ТЗ)
+    def inorder(self, node):
+        if node:
+            self.inorder(node.left)
+            print(node.key, end=' ')
+            self.inorder(node.right)
+
+    def get_height(self, node):
+        if node is None: return 0
+        return 1 + max(self.get_height(node.left), self.get_height(node.right))
+
+# --- ИСПОЛНЕНИЕ ТЗ №2 ---
+
+keys = 
+tree = BST()
+for k in keys:
+    tree.insert(k)
+
+print("=== ИСХОДНОЕ ДЕРЕВО ===")
+print("In-order:   ", end=""); tree.inorder(tree.root); print()
+print("Level-order:", end=""); tree.level_order(tree.root); print()
+
+# Последовательное удаление
+to_delete = [20, 30, 50]
+cases = [
+    "Удаление 20 (ЛИСТ):", 
+    "Удаление 30 (ОДИН ПОТОМОК):", 
+    "Удаление 50 (ДВА ПОТОМКА - КОРЕНЬ):"
+]
+
+for i in range(len(to_delete)):
+    val = to_delete[i]
+    print(f"\n--- {cases[i]} ---")
+    tree.delete(val)
+    print("In-order:   ", end=""); tree.inorder(tree.root); print()
+    print("Level-order:", end=""); tree.level_order(tree.root); print()
+
+# Пункт 3: Порядок, который "портит" форму (увеличивает высоту)
+print("\n=== ЗАДАНИЕ №2.3 (ЭКСПЕРИМЕНТ) ===")
+print("Чтобы максимально 'испортить' дерево при удалении, нужно удалять узлы так,")
+print("чтобы оставшиеся ветви не имели возможности перебалансироваться.")
+print(f"Текущая высота после удалений: {tree.get_height(tree.root)}")
+
