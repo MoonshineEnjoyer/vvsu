@@ -1,85 +1,97 @@
-     1	black
-     2	white
-     3	blue
-     4	brown
-     5	gray
-     6	orange
-     7	red
-     8	yellow
-     9	patches
-    10	spots
-    11	stripes
-    12	furry
-    13	hairless
-    14	toughskin
-    15	big
-    16	small
-    17	bulbous
-    18	lean
-    19	flippers
-    20	hands
-    21	hooves
-    22	pads
-    23	paws
-    24	longleg
-    25	longneck
-    26	tail
-    27	chewteeth
-    28	meatteeth
-    29	buckteeth
-    30	strainteeth
-    31	horns
-    32	claws
-    33	tusks
-    34	smelly
-    35	flys
-    36	hops
-    37	swims
-    38	tunnels
-    39	walks
-    40	fast
-    41	slow
-    42	strong
-    43	weak
-    44	muscle
-    45	bipedal
-    46	quadrapedal
-    47	active
-    48	inactive
-    49	nocturnal
-    50	hibernate
-    51	agility
-    52	fish
-    53	meat
-    54	plankton
-    55	vegetation
-    56	insects
-    57	forager
-    58	grazer
-    59	hunter
-    60	scavenger
-    61	skimmer
-    62	stalker
-    63	newworld
-    64	oldworld
-    65	arctic
-    66	coastal
-    67	desert
-    68	bush
-    69	plains
-    70	forest
-    71	fields
-    72	jungle
-    73	mountains
-    74	ocean
-    75	ground
-    76	water
-    77	tree
-    78	cave
-    79	fierce
-    80	timid
-    81	smart
-    82	group
-    83	solitary
-    84	nestspot
-    85	domestic
+class Node:
+    def __init__(self, key):
+        self.key = key
+        self.left = None
+        self.right = None
+
+class BST:
+    def __init__(self):
+        self.root = None
+        self.comparisons = 0 # Для выполнения пункта №2
+
+    def insert(self, key):
+        if self.root is None:
+            self.root = Node(key)
+        else:
+            self._insert_recursive(self.root, key)
+
+    def _insert_recursive(self, node, key):
+        if key < node.key:
+            if node.left is None:
+                node.left = Node(key)
+            else:
+                self._insert_recursive(node.left, key)
+        else:
+            if node.right is None:
+                node.right = Node(key)
+            else:
+                self._insert_recursive(node.right, key)
+
+    def search(self, key):
+        self.comparisons = 0
+        return self._search_recursive(self.root, key)
+
+    def _search_recursive(self, node, key):
+        self.comparisons += 1 # Считаем каждый шаг
+        if node is None or node.key == key:
+            return node
+        if key < node.key:
+            return self._search_recursive(node.left, key)
+        return self._search_recursive(node.right, key)
+
+    # Три метода обхода из ТЗ
+    def inorder(self, node, res):
+        if node:
+            self.inorder(node.left, res)
+            res.append(node.key)
+            self.inorder(node.right, res)
+
+    def preorder(self, node, res):
+        if node:
+            res.append(node.key)
+            self.preorder(node.left, res)
+            self.preorder(node.right, res)
+
+    def postorder(self, node, res):
+        if node:
+            self.postorder(node.left, res)
+            self.postorder(node.right, res)
+            res.append(node.key)
+
+    # Функция для вычисления высоты (нужна для пункта №2)
+    def get_height(self, node):
+        if node is None:
+            return 0
+        return 1 + max(self.get_height(node.left), self.get_height(node.right))
+
+# --- ВЫПОЛНЕНИЕ ЗАДАНИЯ ---
+
+keys = [50, 30, 120, 70, 20, 90, 40, 60, 80]
+
+# 1. Построение и обходы
+tree1 = BST()
+for k in keys: tree1.insert(k)
+
+res_in, res_pre, res_post = [], [], []
+tree1.inorder(tree1.root, res_in)
+tree1.preorder(tree1.root, res_pre)
+tree1.postorder(tree1.root, res_post)
+
+print(f"Обходы дерева №1:\nIn-order: {res_in}\nPre-order: {res_pre}\nPost-order: {res_post}")
+
+# 2. Сравнение с отсортированным списком
+sorted_keys = sorted(keys)
+tree2 = BST()
+for k in sorted_keys: tree2.insert(k)
+
+print(f"\n--- СРАВНЕНИЕ ---")
+print(f"Высота дерева №1: {tree1.get_height(tree1.root)}")
+print(f"Высота дерева №2 (отсортированного): {tree2.get_height(tree2.root)}")
+
+target = 80
+tree1.search(target)
+c1 = tree1.comparisons
+tree2.search(target)
+c2 = tree2.comparisons
+
+print(f"Сравнений при поиске {target}: в дереве №1 = {c1}, в дереве №2 = {c2}")
