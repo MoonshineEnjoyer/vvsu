@@ -7,7 +7,7 @@ class Node:
 class BST:
     def __init__(self):
         self.root = None
-        self.comp_count = 0 # счетчик для пункта №2
+        self.comp_count = 0  # Счетчик для задания №2
 
     # --- МЕТОДЫ ВСТАВКИ (Слайд 1) ---
     def insert(self, key):
@@ -30,7 +30,7 @@ class BST:
     def _search(self, node, key):
         if node is None:
             return None             # не найден
-        self.comp_count += 1
+        self.comp_count += 1        # считаем каждое сравнение
         if key == node.key:
             return node             # найден!
         if key < node.key:
@@ -57,42 +57,52 @@ class BST:
             self.postorder(node.right)
             print(node.key, end=' ')
 
-    # Метод для замера высоты (Пункт 2 ТЗ)
+    # Вспомогательный метод для замера высоты
     def get_height(self, node):
         if node is None:
             return 0
         return 1 + max(self.get_height(node.left), self.get_height(node.right))
 
-# --- ВЫПОЛНЕНИЕ ЗАДАНИЯ ---
+# --- ВЫПОЛНЕНИЕ ЗАДАНИЯ ПО ПУНКТАМ ---
 
-keys = [50, 30, 120, 70, 20, 90, 40, 60, 80]
+# Ключи из ТЗ
+keys_list = [50, 30, 120, 70, 20, 90, 40, 60, 80]
 
-# 1. Построение и вывод обходов
-tree = BST()
-for k in keys:
-    tree.insert(k)
+# --- Пункт №1: Построение BST и обходы ---
+tree1 = BST()
+for k in keys_list:
+    tree1.insert(k)
 
-print("Задание 1: Результаты обходов")
-print("In-order:  ", end=''); tree.inorder(tree.root); print()
-print("Pre-order: ", end=''); tree.preorder(tree.root); print()
-print("Post-order:", end=''); tree.postorder(tree.root); print()
+print("=== ЗАДАНИЕ №1 ===")
+print("Обходы дерева (построено из исходного списка):")
+print("In-order:  ", end=""); tree1.inorder(tree1.root); print()
+print("Pre-order: ", end=""); tree1.preorder(tree1.root); print()
+print("Post-order:", end=""); tree1.postorder(tree1.root); print()
 
-# 2. Сравнение высоты и поиска
-print("\nЗадание 2: Сравнение")
-tree_sorted = BST()
-for k in sorted(keys):
-    tree_sorted.insert(k)
+# --- Пункт №2: Сравнение с отсортированным списком ---
+print("\n=== ЗАДАНИЕ №2 ===")
+tree2 = BST()
+# Строим дерево из отсортированного списка (худший случай)
+for k in sorted(keys_list):
+    tree2.insert(k)
 
-print(f"Высота обычного дерева: {tree.get_height(tree.root)}")
-print(f"Высота отсортированного: {tree_sorted.get_height(tree_sorted.root)}")
+print(f"Высота дерева №1 (обычное): {tree1.get_height(tree1.root)}")
+print(f"Высота дерева №2 (отсортированное): {tree2.get_height(tree2.root)}")
 
-tree.search(80)
-c1 = tree.comp_count
-tree_sorted.search(80)
-c2 = tree_sorted.comp_count
-print(f"Сравнений при поиске '80': в обычном = {c1}, в отсортированном = {c2}")
+# Сравнение поиска
+target_key = 80
+tree1.search(target_key)
+c1 = tree1.comp_count
 
-# 3. Обоснование (Пункт 3 ТЗ)
-# Лучший случай: O(1) - поиск корня.
-# Средний случай: O(log n) - для сбалансированного дерева.
-# Худший случай: O(n) - когда дерево вырождается в список.
+tree2.search(target_key)
+c2 = tree2.comp_count
+
+print(f"Сравнений для поиска '{target_key}' в дереве №1: {c1}")
+print(f"Сравнений для поиска '{target_key}' в дереве №2: {c2}")
+
+# --- Пункт №3: Обоснование сложности ---
+print("\n=== ЗАДАНИЕ №3 ===")
+print("Сложность BST:")
+print("- Средний случай: O(log n) — если дерево сбалансировано (как наше дерево №1).")
+print("- Худший случай: O(n) — если дерево вырождается в список (как наше дерево №2).")
+print("- Лучший случай: O(1) — если искомый ключ находится в корне.")
