@@ -134,3 +134,83 @@ for u, v in edges:
 # Красивый вывод
 for row in matrix:
     print(row)
+
+
+
+
+
+
+
+
+from collections import deque
+
+# Исходный граф из задания 1
+graph = {
+    'a': ['b', 'c'],
+    'b': ['a', 'd', 'e'],
+    'c': ['a', 'f'],
+    'd': ['b'],
+    'e': ['b', 'f'],
+    'f': ['c', 'e']
+}
+
+# 1. Порядок обхода BFS
+def bfs(graph, start):
+    visited = []
+    queue = deque([start])
+    visited_set = {start}
+    
+    while queue:
+        vertex = queue.popleft()
+        visited.append(vertex)
+        for neighbor in graph.get(vertex, []):
+            if neighbor not in visited_set:
+                visited_set.add(neighbor)
+                queue.append(neighbor)
+    return visited
+
+# 2. Словарь расстояний от start до всех вершин
+def bfs_distances(graph, start):
+    distances = {vertex: float('inf') for vertex in graph}
+    distances[start] = 0
+    queue = deque([start])
+    
+    while queue:
+        vertex = queue.popleft()
+        for neighbor in graph.get(vertex, []):
+            if distances[neighbor] == float('inf'):
+                distances[neighbor] = distances[vertex] + 1
+                queue.append(neighbor)
+    return distances
+
+# 3. Поиск кратчайшего пути
+def bfs_shortest_path(graph, start, end):
+    if start == end:
+        return [start]
+    queue = deque([[start]])
+    visited = {start}
+    
+    while queue:
+        path = queue.popleft()
+        vertex = path[-1]
+        
+        if vertex == end:
+            return path
+            
+        for neighbor in graph.get(vertex, []):
+            if neighbor not in visited:
+                visited.add(neighbor)
+                new_path = list(path)
+                new_path.append(neighbor)
+                queue.append(new_path)
+    return None
+
+# --- Тестирование и поиск путей ---
+print("Порядок обхода от 'a':", bfs(graph, 'a'))
+print("Расстояния от 'a':", bfs_distances(graph, 'a'))
+
+path_A_F = bfs_shortest_path(graph, 'a', 'f')
+path_D_F = bfs_shortest_path(graph, 'd', 'f')
+
+print(f"Кратчайший путь из A в F: {path_A_F}")
+print(f"Кратчайший путь из D в F: {path_D_F}")
