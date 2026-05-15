@@ -107,3 +107,30 @@ print(table.search(48))
 
 table.delete(1)
 table.display()
+
+
+
+
+
+
+
+
+# Определение вершин и ребер
+vertices = ['a', 'b', 'c', 'd', 'e', 'f']
+edges = [('a', 'b'), ('a', 'c'), ('b', 'd'), ('b', 'e'), ('c', 'f'), ('e', 'f')]
+
+# Создание маппинга «имя: индекс»
+v_to_idx = {vertex: i for i, vertex in enumerate(vertices)}
+
+# Инициализация пустой матрицы 6х6
+matrix = [[0] * 6 for _ in range(6)]
+
+# Заполнение матрицы для неориентированного графа
+for u, v in edges:
+    i, j = v_to_idx[u], v_to_idx[v]
+    matrix[i][j] = 1
+    matrix[j][i] = 1
+
+# Красивый вывод
+for row in matrix:
+    print(row)
