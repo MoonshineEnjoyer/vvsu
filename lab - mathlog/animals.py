@@ -363,3 +363,86 @@ print(f"\n4. Восстановленный кратчайший путь от {
 print(f"   Путь: {shortest_path}")
 print(f"   Суммарный вес (длина пути): {distances[end_vertex]}")
 
+
+
+
+
+
+
+
+
+# 2. Представление графа как список смежности с весами (из условий Задания 1)
+graph = {
+    0: [(1, 4), (2, 2)],
+    1: [(2, 1), (3, 5)],
+    2: [(1, 1), (3, 8), (4, 10)],
+    3: [(4, 2)],
+    4: []
+}
+
+# 3. Реализация алгоритма Дейкстры через итеративный обход соседей
+def dijkstra_traversal(graph, start, end):
+    # Инициализация структуры посещенных вершин, как в DFS/BFS на лекции
+    visited = set()
+    
+    # Инициализация массива/словаря расстояний значениями бесконечности
+    INF = float('inf')
+    distances = {vertex: INF for vertex in graph}
+    distances[start] = 0
+    
+    # Словарь предков для восстановления пути (Шаг 4)
+    predecessors = {vertex: None for vertex in graph}
+    
+    # Обходим граф, пока не посетим все доступные вершины
+    while len(visited) < len(graph):
+        # Находим среди НЕПОСЕЩЕННЫХ вершину с минимальным текущим расстоянием
+        current_vertex = None
+        min_dist = INF
+        
+        for vertex in graph:
+            if vertex not in visited and distances[vertex] < min_dist:
+                min_dist = distances[vertex]
+                current_vertex = vertex
+                
+        # Если не осталось доступных вершин, завершаем обход
+        if current_vertex == -1 or current_vertex is None:
+            break
+            
+        # Фиксируем вершину (добавляем в visited, как в коде BFS/DFS с презентации)
+        visited.add(current_vertex)
+        
+        # Обход соседей текущей вершины (как во всех алгоритмах обхода лекции)
+        for neighbor, weight in graph[current_vertex]:
+            if neighbor not in visited:
+                new_distance = distances[current_vertex] + weight
+                
+                # Релаксация: если нашли путь короче, обновляем данные
+                if new_distance < distances[neighbor]:
+                    distances[neighbor] = new_distance
+                    predecessors[neighbor] = current_vertex
+                    
+    # 4. Восстановление кратчайшего пути от start до end
+    path = []
+    curr = end
+    while curr is not None:
+        path.append(curr)
+        curr = predecessors[curr]
+    path.reverse()
+    
+    return distances, path
+
+# Запуск скрипта для проверки
+start_vertex = 0
+end_vertex = 4
+distances, shortest_path = dijkstra_traversal(graph, start_vertex, end_vertex)
+
+# Вывод результатов в консоль
+print("3. Кратчайшие расстояния от вершины 0:")
+for vertex, dist in distances.items():
+    print(f"До вершины {vertex}: {dist}")
+
+print(f"\n4. Кратчайший путь от {start_vertex} до {end_vertex}:")
+print(" -> ".join(map(str, shortest_path)))
+
+
+
