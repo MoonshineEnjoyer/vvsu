@@ -446,3 +446,85 @@ print(" -> ".join(map(str, shortest_path)))
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+from collections import deque, defaultdict
+
+# Данные проекта из таблицы Задания 2: ребра (откуда, куда, длительность)
+edges = [
+    (0, 1, 3),
+    (0, 2, 2),
+    (1, 3, 4),
+    (2, 3, 5),
+    (1, 4, 6),
+    (3, 4, 2),
+    (3, 5, 3),
+    (4, 5, 1)
+]
+n = 6  # Проект из 6 узлов (от 0 до 5)
+
+# 1. Реализация топологической сортировки (левая часть слайда 35)
+def topological_sort(graph, n):
+    in_degree = [0] * n
+    for u in range(n):
+        for v, w in graph[u]:
+            in_degree[v] += 1
+            
+    # Используем очередь deque, как в лекции
+    queue = deque([v for v in range(n) if in_degree[v] == 0])
+    order = []
+    
+    while queue:
+        v = queue.popleft()
+        order.append(v)
+        for neighbor, w in graph[v]:
+            in_degree[neighbor] -= 1
+            if in_degree[neighbor] == 0:
+                queue.append(neighbor)
+    return order
+
+# 2-3. Реализация нахождения критического пути (правая часть слайда 35)
+def critical_path(n, edges):
+    graph = defaultdict(list)
+    for u, v, w in edges:
+        graph[u].append((v, w))
+        
+    # Шаг 1: Топологическая сортировка
+    order = topological_sort(graph, n)
+    
+    # Шаг 2: Прямой проход (вычисление раннего времени раннего начала)
+    early = [0] * n
+    for u in order:
+        for v, w in graph[u]:
+            early[v] = max(early[v], early[u] + w)
+            
+    # Шаг 3: Обратный проход (вычисление позднего времени)
+    late = [early[order[-1]]] * n
+    for u in reversed(order):
+        for v, w in graph[u]:
+            late[u] = min(late[u], late[v] - w)
+            
+    # Шаг 4: Определение критических узлов (где раннее время равно позднейшему)
+    # Исправляем опечатку из слайда, чтобы функция возвращала сами номера узлов
+    crit_nodes = [i for i in range(n) if early[i] == late[i]]
+    
+    return early[order[-1]], crit_nodes, order
+
+# Запуск алгоритма
+t_cr, nodes, top_order = critical_path(n, edges)
+
+# Вывод ответов по пунктам задания
+print(f"1. Результат топологической сортировки: {top_order}")
+print(f"3. Критическое время (Ткр) = {t_cr}")
+print(f"3. Критические узлы: {nodes}")
+
+
