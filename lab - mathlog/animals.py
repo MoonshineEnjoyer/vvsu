@@ -528,3 +528,99 @@ print(f"3. Критическое время (Ткр) = {t_cr}")
 print(f"3. Критические узлы: {nodes}")
 
 
+
+
+
+
+
+
+
+from collections import deque, defaultdict
+
+# Данные проекта из таблицы Задания 2: ребра (откуда, куда, длительность)
+edges = [
+    (0, 1, 3),
+    (0, 2, 2),
+    (1, 3, 4),
+    (2, 3, 5),
+    (1, 4, 6),
+    (3, 4, 2),
+    (3, 5, 3),
+    (4, 5, 1)
+]
+n = 6  # Проект из 6 узлов (от 0 до 5)
+
+# 1. Топологическая сортировка (по лекции)
+def topological_sort(graph, n):
+    in_degree = [0] * n
+    for u in range(n):
+        for v, w in graph[u]:
+            in_degree[v] += 1
+            
+    queue = deque([v for v in range(n) if in_degree[v] == 0])
+    order = []
+    
+    while queue:
+        v = queue.popleft()
+        order.append(v)
+        for neighbor, w in graph[v]:
+            in_degree[neighbor] -= 1
+            if in_degree[neighbor] == 0:
+                queue.append(neighbor)
+    return order
+
+# 2. Основная функция расчёта параметров CPM
+def critical_path_analysis(n, edges):
+    graph = defaultdict(list)
+    for u, v, w in edges:
+        graph[u].append((v, w))
+        
+    order = topological_sort(graph, n)
+    
+    # Прямой проход: расчет ранних сроков (как в лекции)
+    early = [0] * n
+    for u in order:
+        for v, w in graph[u]:
+            early[v] = max(early[v], early[u] + w)
+            
+    # Обратный проход: исправленный расчет поздних сроков для ветвлений
+    late = [early[order[-1]]] * n
+    for u in reversed(order):
+        for v, w in graph[u]:
+            if late[v] - w < late[u]:
+                late[u] = late[v] - w
+                
+    # Определение всех критических узлов
+    crit_nodes = [i for i in range(n) if early[i] == late[i]]
+    
+    # 3. Функция восстановления критических путей (обход в глубину от истока к стоку)
+    critical_paths = []
+    
+    def find_paths(current_node, current_path):
+        if current_node == n - 1:  # Дошли до конечного узла (5)
+            critical_paths.append(list(current_path))
+            return
+        for neighbor, weight in graph[current_node]:
+            # Ребро лежит на критическом пути, если узел-сосед критический
+            # и раннее время начала совпадает с шагом выполнения работы
+            if neighbor in crit_nodes and early[current_node] + weight == early[neighbor]:
+                current_path.append(neighbor)
+                find_paths(neighbor, current_path)
+                current_path.pop()
+
+    # Запускаем поиск путей из начальной вершины 0
+    if 0 in crit_nodes:
+        find_paths(0, [0])
+        
+    return early[order[-1]], crit_nodes, top_order, critical_paths
+
+# Запуск алгоритма
+t_cr, nodes, top_order, all_paths = critical_path_analysis(n, edges)
+
+# Вывод результатов работы программы
+print(f"1. Топологический порядок вершин: {top_order}")
+print(f"2. Критическое время выполнения проекта (Ткр): {t_cr}")
+print(f"3. Все критические узлы: {nodes}")
+print("\n4. Вычисленные критические пути проекта:")
+for idx, path in enumerate(all_paths, 1):
+    print(f"   Путь {idx}: " + " -> ".join(map(str, path)))
