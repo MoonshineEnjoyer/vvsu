@@ -287,3 +287,79 @@ for vertex, dist in distances.items():
 
 print(f"\n4. Кратчайший путь от {start_vertex} до {target_vertex}:")
 print(" -> ".join(map(str, shortest_path)))
+
+
+
+
+
+
+
+
+import heapq
+
+# 2. Представление графа как список смежности с весами (Лекция, стр. 22)
+weighted_graph = {
+    0: [(1, 4), (2, 2)],
+    1: [(2, 1), (3, 5)],
+    2: [(1, 1), (3, 8), (4, 10)],
+    3: [(4, 2)],
+    4: []
+}
+
+def dijkstra(graph, start):
+    # Инициализация расстояний бесконечностью (Лекция, стр. 22 использует INF)
+    INF = float('inf')
+    distances = {vertex: INF for vertex in graph}
+    distances[start] = 0
+    
+    # Структура для восстановления пути
+    parent = {vertex: None for vertex in graph}
+    
+    # Приоритетная очередь на базе min-heap (Принцип из Лекции, стр. 20, 23)
+    # Хранит кортежи: (текущее_расстояние, вершина)
+    priority_queue = [(0, start)]
+    
+    while priority_queue:
+        current_distance, current_vertex = heapq.heappop(priority_queue)
+        
+        # Если нашли путь длиннее, чем уже сохранен — пропускаем
+        if current_distance > distances[current_vertex]:
+            continue
+            
+        # Обход соседей вершины (Лекция, стр. 22)
+        for neighbor, weight in graph[current_vertex]:
+            distance = current_distance + weight
+            
+            # Релаксация ребра
+            if distance < distances[neighbor]:
+                distances[neighbor] = distance
+                parent[neighbor] = current_vertex
+                heapq.heappush(priority_queue, (distance, neighbor))
+                
+    return distances, parent
+
+def get_path(parent, start, end):
+    # 4. Функция восстановления кратчайшего пути
+    path = []
+    current = end
+    while current is not None:
+        path.append(current)
+        current = parent[current]
+    path.reverse()
+    return path if path[0] == start else []
+
+# Запуск алгоритма от вершины 0
+start_vertex = 0
+end_vertex = 4
+distances, parent = dijkstra(weighted_graph, start_vertex)
+shortest_path = get_path(parent, start_vertex, end_vertex)
+
+# Вывод результатов в консоль
+print("3. Кратчайшие расстояния от вершины 0:")
+for vertex, dist in distances.items():
+    print(f"   До вершины {vertex}: {dist}")
+
+print(f"\n4. Восстановленный кратчайший путь от {start_vertex} до {end_vertex}:")
+print(f"   Путь: {shortest_path}")
+print(f"   Суммарный вес (длина пути): {distances[end_vertex]}")
+
