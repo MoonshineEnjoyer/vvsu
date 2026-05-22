@@ -214,3 +214,76 @@ path_D_F = bfs_shortest_path(graph, 'd', 'f')
 
 print(f"Кратчайший путь из A в F: {path_A_F}")
 print(f"Кратчайший путь из D в F: {path_D_F}")
+
+
+
+
+
+
+
+import heapq
+
+# 2. Представление графа в виде списка смежности с весами
+# Структура: {вершина_источник: [(сосед, вес), ...]}
+graph = {
+    0: [(1, 4), (2, 2)],
+    1: [(2, 1), (3, 5)],
+    2: [(1, 1), (3, 8), (4, 10)],
+    3: [(4, 2)],
+    4: []
+}
+
+def dijkstra(graph, start, target):
+    # Инициализация расстояний бесконечностью, для стартовой вершины — 0
+    distances = {vertex: float('infinity') for vertex in graph}
+    distances[start] = 0
+    
+    # Словарь для восстановления пути: {дочерняя_вершина: родительская_вершина}
+    predecessors = {vertex: None for vertex in graph}
+    
+    # Очередь с приоритетами (минимальная куча), хранит пары (расстояние, вершина)
+    priority_queue = [(0, start)]
+    
+    while priority_queue:
+        current_distance, current_vertex = heapq.heappop(priority_queue)
+        
+        # Если нашли расстояние больше, чем уже записано, пропускаем
+        if current_distance > distances[current_vertex]:
+            continue
+            
+        # Обход всех соседей текущей вершины
+        for neighbor, weight in graph[current_vertex]:
+            distance = current_distance + weight
+            
+            # Если найден более короткий путь к соседу
+            if distance < distances[neighbor]:
+                distances[neighbor] = distance
+                predecessors[neighbor] = current_vertex
+                heapq.heappush(priority_queue, (distance, neighbor))
+                
+    # 4. Восстановление кратчайшего пути от start до target
+    path = []
+    current = target
+    while current is not None:
+        path.append(current)
+        current = predecessors[current]
+    path.reverse()
+    
+    # Если путь не существует (расстояние осталось бесконечным)
+    if distances[target] == float('infinity'):
+        return distances, []
+        
+    return distances, path
+
+# Запуск алгоритма
+start_vertex = 0
+target_vertex = 4
+distances, shortest_path = dijkstra(graph, start_vertex, target_vertex)
+
+# Вывод результатов
+print("3. Кратчайшие расстояния от вершины 0:")
+for vertex, dist in distances.items():
+    print(f"До вершины {vertex}: {dist}")
+
+print(f"\n4. Кратчайший путь от {start_vertex} до {target_vertex}:")
+print(" -> ".join(map(str, shortest_path)))
