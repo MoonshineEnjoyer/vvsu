@@ -875,3 +875,159 @@ if __name__ == "__main__":
     print("Случай 3 (Не связаны): ", polygons_intersect(box1, box4))  # Ожидается False
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import math
+
+def perimeter(polygon):
+    n = len(polygon)
+    p = 0.0
+    for i in range(n):
+        x1, y1 = polygon[i]
+        x2, y2 = polygon[(i + 1) % n]
+        p += math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+    return p
+
+def polygon_area(polygon):
+    n = len(polygon)
+    area = 0.0
+    for i in range(n):
+        x1, y1 = polygon[i]
+        x2, y2 = polygon[(i + 1) % n]
+        area += x1 * y2 - x2 * y1
+    return abs(area) / 2.0
+
+poly = [(0, 0), (6, 1), (6, 3), (0, 3)]
+print(f"Периметр: {perimeter(poly)}")
+print(f"Площадь: {polygon_area(poly)}")
+
+
+
+
+
+def bbox_test(px, py, polygon):
+    """Предфильт перед Рейтрейсингом"""
+    xs = [p[0] for p in polygon]
+    ys = [p[1] for p in polygon]
+    return min(xs) <= px <= max(xs) and min(ys) <= py <= max(ys)
+
+
+def point_in_polygon(px, py, polygon):
+    """Рейтрейсинг"""
+    n = len(polygon)
+    inside = False
+    x1, y1 = polygon[0]
+    for i in range(1, n + 1):
+        x2, y2 = polygon[i % n]
+        if min(y1, y2) < py <= max(y1, y2):
+            x_intersect = (py - y1) * (x2 - x1) / (y2 - y1) + x1
+            if px < x_intersect:
+                inside = not inside
+        x1, y1 = x2, y2
+    return inside
+
+testpoly = [(0, 0), (5, 0), (5, 5), (3, 2), (1, 5)]
+
+print("Тест: лежит ли точка в (3; 1) в многоугольнике?")
+print(point_in_polygon(3, 1, testpoly))  # True  (внутри основания)
+print("\nТест: лежит ли точка в (3; 4) в многоугольнике?")
+print(point_in_polygon(3, 4, testpoly))  # False (во «впадине» невыпуклой части)
+
+
+
+
+
+
+
+
+
+
+
+
+def on_segment(p, q, r):
+    """Проверяет, что точка q лежит на отрезке pr (при коллинеарности)"""
+    return (min(p[0], r[0]) <= q[0] <= max(p[0], r[0]) and
+            min(p[1], r[1]) <= q[1] <= max(p[1], r[1]))
+
+def cross2(o, a, b):
+    """Векторное произведение"""
+    return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+def point_in_polygon(px, py, polygon):
+    """Рейтрейсинг"""
+    n = len(polygon)
+    inside = False
+    x1, y1 = polygon[0]
+    for i in range(1, n + 1):
+        x2, y2 = polygon[i % n]
+        if min(y1, y2) < py <= max(y1, y2):
+            x_intersect = (py - y1) * (x2 - x1) / (y2 - y1) + x1
+            if px < x_intersect:
+                inside = not inside
+        x1, y1 = x2, y2
+    return inside
+
+def segments_intersect(a, b, c, d):
+    """Проверяет пересечение отрезков AB и CD"""
+    d1 = cross2(a, b, c)
+    d2 = cross2(a, b, d)
+    d3 = cross2(c, d, a)
+    d4 = cross2(c, d, b)
+    # Отрезки пересекаются крест-накрест
+    if ((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and ((d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0)):
+        return True
+    # Особые случаи коллинеарности и касания
+    if d1 == 0 and on_segment(a, c, b): return True
+    if d2 == 0 and on_segment(a, d, b): return True
+    if d3 == 0 and on_segment(c, a, d): return True
+    if d4 == 0 and on_segment(c, b, d): return True
+    return False
+
+def polygons_intersect(poly1, poly2):
+    """Проверяет пересечение двух многоугольников"""
+    n1 = len(poly1)
+    n2 = len(poly2)
+    # 1. Проверяем пересечение любых двух рёбер многоугольников
+    for i in range(n1):
+        a, b = poly1[i], poly1[(i + 1) % n1]
+        for j in range(n2):
+            c, d = poly2[j], poly2[(j + 1) % n2]
+            if segments_intersect(a, b, c, d):
+                return True
+    # 2. Проверяем полное включение (если рёбра не пересекаются, один может быть внутри другого)
+    # Достаточно проверить одну любую точку poly1 внутри poly2
+    if point_in_polygon(poly1[0][0], poly1[0][1], poly2):
+        return True
+    # И наоборот: точку poly2 внутри poly1
+    if point_in_polygon(poly2[0][0], poly2[0][1], poly1):
+        return True
+    return False
+
+p1 = [(0, 0), (4, 0), (4, 4), (0, 4)]  # Квадрат 1
+p2 = [(2, 2), (6, 2), (6, 6), (2, 6)]  # Квадрат 2
+p3 = [(5, 5), (7, 5), (7, 7), (5, 7)]  # Квадрат 3
+
+print("Пересекается ли квадрат 1 с квадратом 2?")
+print(polygons_intersect(p1, p2))
+print("\nПересекается ли квадрат 1 с квадратом 3?")
+print(polygons_intersect(p1, p3))
+print("\nПересекается ли квадрат 2 с квадратом 3?")
+print(polygons_intersect(p2, p3))
