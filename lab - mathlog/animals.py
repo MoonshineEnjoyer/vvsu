@@ -764,3 +764,114 @@ p3 = [(5, 5), (7, 5), (7, 7), (5, 7)]  # Квадрат снаружи
 print(polygons_intersect(p1, p2))  # True
 print(polygons_intersect(p1, p3))  # False
 
+
+
+
+
+
+
+
+
+
+
+# ==========================================
+# КОД ИЗ ЛЕКЦИИ (СЛАЙДЫ 8, 9, 10) Без изменений
+# ==========================================
+
+def on_segment(p, q, r):
+    # Проверяет, что q лежит на отрезке pr (при коллинеарности)
+    return (min(p[0], r[0]) <= q[0] <= max(p[0], r[0]) and
+            min(p[1], r[1]) <= q[1] <= max(p[1], r[1]))
+
+def cross2(o, a, b):
+    # Векторное произведение через координаты-индексы
+    return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+def segments_intersect(a, b, c, d):
+    # Проверяет пересечение отрезков AB и CD
+    d1 = cross2(a, b, c)
+    d2 = cross2(a, b, d)
+    d3 = cross2(c, d, a)
+    d4 = cross2(c, d, b)
+    
+    if ((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and \
+       ((d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0)):
+        return True
+        
+    if d1 == 0 and on_segment(a, c, b): return True
+    if d2 == 0 and on_segment(a, d, b): return True
+    if d3 == 0 and on_segment(c, a, d): return True
+    if d4 == 0 and on_segment(c, b, d): return True
+    
+    return False
+
+def point_in_polygon(px, py, polygon):
+    # Лучевой тест (Ray Casting) со слайда 8
+    n = len(polygon)
+    inside = False
+    x1, y1 = polygon[0]
+    for i in range(1, n + 1):
+        x2, y2 = polygon[i % n]
+        if min(y1, y2) < py <= max(y1, y2):
+            x_intersect = (py - y1) * (x2 - x1) / (y2 - y1) + x1
+            if px < x_intersect:
+                inside = not inside
+        x1, y1 = x2, y2
+    return inside
+
+
+# ==========================================
+# РЕАЛИЗАЦИЯ ФУНКЦИИ ПО ТЗ ЗАДАНИЯ 3
+# ==========================================
+
+def polygons_intersect(poly1, poly2):
+    """
+    Проверяет, пересекаются ли два многоугольника poly1 и poly2.
+    Учитывает:
+      1. Пересечение рёбер (включая касание и коллинеарность).
+      2. Полное вложение одного многоугольника в другой.
+    """
+    n1 = len(poly1)
+    n2 = len(poly2)
+    
+    # Шаг 1. Проверяем пересечение всех пар рёбер по алгоритму из лекции
+    for i in range(n1):
+        a = poly1[i]
+        b = poly1[(i + 1) % n1]
+        for j in range(n2):
+            c = poly2[j]
+            d = poly2[(j + 1) % n2]
+            if segments_intersect(a, b, c, d):
+                return True
+                
+    # Шаг 2. Если рёбра не пересекаются, проверяем полное вложение
+    # Проверяем, находится ли первая вершина poly1 внутри poly2
+    if point_in_polygon(poly1[0][0], poly1[0][1], poly2):
+        return True
+        
+    # Проверяем обратное: находится ли первая вершина poly2 внутри poly1
+    if point_in_polygon(poly2[0][0], poly2[0][1], poly1):
+        return True
+        
+    return False
+
+
+# ==========================================
+# ПРИМЕРЫ ДЛЯ ТЕСТИРОВАНИЯ И ПРОВЕРКИ
+# ==========================================
+
+if __name__ == "__main__":
+    # 1. Многоугольники пересекаются (наложение границ)
+    box1 = [(0, 0), (4, 0), (4, 4), (0, 4)]
+    box2 = [(2, 2), (6, 2), (6, 6), (2, 6)]
+    print("Случай 1 (Пересечение):", polygons_intersect(box1, box2))  # Ожидается True
+
+    # 2. Полное вложение (box3 целиком внутри box1, рёбра не пересекаются)
+    box3 = [(1, 1), (3, 1), (3, 3), (1, 3)]
+    print("Случай 2 (Вложение):   ", polygons_intersect(box1, box3))  # Ожидается True
+
+    # 3. Полностью изолированные фигуры
+    box4 = [(10, 10), (12, 10), (12, 12), (10, 12)]
+    print("Случай 3 (Не связаны): ", polygons_intersect(box1, box4))  # Ожидается False
+
+
