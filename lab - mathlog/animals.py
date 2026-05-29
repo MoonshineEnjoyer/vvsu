@@ -624,3 +624,37 @@ print(f"3. Все критические узлы: {nodes}")
 print("\n4. Вычисленные критические пути проекта:")
 for idx, path in enumerate(all_paths, 1):
     print(f"   Путь {idx}: " + " -> ".join(map(str, path)))
+
+
+
+
+
+
+
+
+
+import math
+
+def perimeter(polygon):
+    n = len(polygon)
+    p = 0.0
+    for i in range(n):
+        x1, y1 = polygon[i]
+        x2, y2 = polygon[(i + 1) % n]
+        p += math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+    return p
+
+def area(polygon):
+    n = len(polygon)
+    polygon_area_val = 0.0
+    for i in range(n):
+        x1, y1 = polygon[i]
+        x2, y2 = polygon[(i + 1) % n]
+        polygon_area_val += x1 * y2 - x2 * y1
+    return abs(polygon_area_val) / 2.0
+
+# Пример работы (тестовые данные с лекции)
+poly = [(0, 0), (4, 0), (4, 3), (0, 3)]
+print(f"Периметр: {perimeter(poly)}")  # Выведет: 14.0
+print(f"Площадь: {area(poly)}")       # Выведет: 12.0
+
