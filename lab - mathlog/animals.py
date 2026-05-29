@@ -658,3 +658,40 @@ poly = [(0, 0), (4, 0), (4, 3), (0, 3)]
 print(f"Периметр: {perimeter(poly)}")  # Выведет: 14.0
 print(f"Площадь: {area(poly)}")       # Выведет: 12.0
 
+
+
+
+
+def bbox_test(px, py, polygon):
+    """Габаритный тест (предфильтр) со слайда 7"""
+    xs = [p[0] for p in polygon]
+    ys = [p[1] for p in polygon]
+    return min(xs) <= px <= max(xs) and min(ys) <= py <= max(ys)
+
+def point_in_polygon(px, py, polygon):
+    """Лучевой тест со слайда 8"""
+    # Шаг оптимизации: если точка вне Bounding Box, она точно снаружи
+    if not bbox_test(px, py, polygon):
+        return False
+        
+    n = len(polygon)
+    inside = False
+    x1, y1 = polygon[0]
+    
+    for i in range(1, n + 1):
+        x2, y2 = polygon[i % n]
+        # Проверка пересечения луча (идущего вправо) со стороной многоугольника
+        if min(y1, y2) < py <= max(y1, y2):
+            x_intersect = (py - y1) * (x2 - x1) / (y2 - y1) + x1
+            if px < x_intersect:
+                inside = not inside
+        x1, y1 = x2, y2
+        
+    return inside
+
+# Тестирование на невыпуклом многоугольнике (в форме буквы "Г" или "короны")
+# Пример невыпуклого многоугольника
+non_convex_poly = [(0, 0), (5, 0), (5, 5), (3, 2), (1, 5)] 
+
+print(point_in_polygon(3, 1, non_convex_poly))  # True  (внутри основания)
+print(point_in_polygon(3, 4, non_convex_poly))  # False (во «впадине» невыпуклой части)
