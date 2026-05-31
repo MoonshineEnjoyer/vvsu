@@ -1031,3 +1031,130 @@ print("\nПересекается ли квадрат 1 с квадратом 3?
 print(polygons_intersect(p1, p3))
 print("\nПересекается ли квадрат 2 с квадратом 3?")
 print(polygons_intersect(p2, p3))
+
+
+
+
+
+
+
+
+
+
+import sys
+import subprocess
+
+# Автоматическая проверка и установка BeautifulSoup4 и requests
+for lib in ['requests', 'beautifulsoup4']:
+    try:
+        __import__(lib if lib != 'beautifulsoup4' else 'bs4')
+    except ImportError:
+        print(f"Библиотека {lib} не найдена. Устанавливаем...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", lib])
+
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+from datetime import datetime
+
+# 1. URL сайта
+URL = 'https://lenta.ru/'
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+    'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7'
+}
+
+# Словарь для красивого вывода месяцев на русском языке
+MONTHS_RU = {
+    1: 'января', 2: 'февраля', 3: 'марта', 4: 'апреля',
+    5: 'мая', 6: 'июня', 7: 'июля', 8: 'августа',
+    9: 'сентября', 10: 'октября', 11: 'ноября', 12: 'декабря'
+}
+
+print(f"Отправка GET-запроса к {URL}...")
+response = requests.get(URL, headers=HEADERS)
+
+if response.status_code == 200:
+    print("Страница Lenta.ru успешно загружена! Начинаем парсинг...\n")
+    
+    soup = BeautifulSoup(response.content, 'html.parser')
+    
+    # Находим карточки новостей
+    news_blocks = soup.select('a[class*="card-mini"], div[class*="card-mini"]')
+    if not news_blocks:
+        news_blocks = soup.select('.parts-page-fraction a')
+    
+    count = 0
+    dt_now = datetime.now()
+    
+    # Сет для отслеживания уникальных ссылок (чтобы избежать повторов)
+    seen_urls = set()
+    
+    # 5. Обход найденных блоков
+    for block in news_blocks:
+        if count >= 5:
+            break
+            
+        # --- Извлечение ссылки и фильтрация ---
+        if block.name == 'a':
+            href = block.get('href', '-')
+        else:
+            link_inside = block.select_one('a')
+            href = link_inside.get('href', '-') if link_inside else '-'
+            
+        # Если ссылки нет, она пустая или это просто заглушка "#" — пропускаем блок
+        if href == '-' or not href or href.strip() == '#':
+            continue
+            
+        # Строим полный URL статьи
+        full_url = urljoin(URL, href)
+        
+        # Если мы эту ссылку уже парсили в этом запуске — пропускаем, чтобы не было дублей
+        if full_url in seen_urls:
+            continue
+            
+        # Ищем заголовок новости
+        title_element = block.select_one('[class*="title"], [class*="text"]')
+        if not title_element and block.name == 'a':
+            title = block.get_text(strip=True)
+        elif title_element:
+            title = title_element.get_text(strip=True)
+        else:
+            continue
+
+        if not title or len(title) < 10:
+            continue
+        
+        # Ищем дату/время публикации и форматируем
+        date_element = block.select_one('time, [class*="date"], [class*="time"]')
+        date_formatted = "Дата не указана"
+        
+        if date_element and date_element.has_attr('datetime'):
+            try:
+                raw_datetime = date_element['datetime']
+                dt = datetime.fromisoformat(raw_datetime.split('+')[0])
+                date_formatted = f"{dt.day} {MONTHS_RU[dt.month]} {dt.year}, {dt.strftime('%H:%M')}"
+            except Exception:
+                time_text = date_element.get_text(strip=True)
+                date_formatted = f"{dt_now.day} {MONTHS_RU[dt_now.month]} {dt_now.year}, {time_text}"
+        elif date_element:
+            time_text = date_element.get_text(strip=True)
+            date_formatted = f"{dt_now.day} {MONTHS_RU[dt_now.month]} {dt_now.year}, {time_text}"
+        else:
+            date_formatted = f"{dt_now.day} {MONTHS_RU[dt_now.month]} {dt_now.year}, {dt_now.strftime('%H:%M')}"
+
+        # Добавляем ссылку в разряд «увиденных»
+        seen_urls.add(full_url)
+        
+        # 6. Вывод в строго заданном формате
+        print(f"📰 {title}")
+        print(f"⏱ {date_formatted}")
+        print(f"🔗 {full_url}")
+        print("-" * 50)
+        
+        count += 1
+
+    if count == 0:
+        print("⚠ Не удалось найти уникальные блоки новостей со ссылками.")
+else:
+    print(f"Ошибка загрузки страницы. Статус-код: {response.status_code}")
