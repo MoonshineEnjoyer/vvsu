@@ -122,15 +122,6 @@ finally:
 
 import sys
 import subprocess
-
-# Автоматическая проверка и установка BeautifulSoup4 и requests
-for lib in ['requests', 'beautifulsoup4']:
-    try:
-        __import__(lib if lib != 'beautifulsoup4' else 'bs4')
-    except ImportError:
-        print(f"Библиотека {lib} не найдена. Устанавливаем...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", lib])
-
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
