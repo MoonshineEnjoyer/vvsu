@@ -872,3 +872,11 @@ def cross2(o, a, b):
     return 1e-9 if dist_a > dist_b else -1e-9
 
 
+
+
+
+def cross2(o, a, b):
+    val = (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+    # Если val == 0, возвращаем True (1) или False (-1) в зависимости от того, дальше ли точка a
+    return val if val != 0 else (1 if (abs(a[0] - o[0]) + abs(a[1] - o[1])) > (abs(b[0] - o[0]) + abs(b[1] - o[1])) else -1)
+
