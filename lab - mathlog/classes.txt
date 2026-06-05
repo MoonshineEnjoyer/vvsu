@@ -643,3 +643,46 @@ if __name__ == "__main__":
     # Переход в режим ручного ввода
     print("\nПереход в интерактивный режим...")
     start_interactive_calculator()
+
+
+
+
+
+
+
+
+import math
+
+# Шаблоны функций аффинных преобразований с лекции
+def translate(points, tx, ty):
+    return [(x + tx, y + ty) for x, y in points]
+
+def rotate(points, angle_deg):
+    a = math.radians(angle_deg)
+    cos_a, sin_a = math.cos(a), math.sin(a)
+    return [(x * cos_a - y * sin_a, x * sin_a + y * cos_a) for x, y in points]
+
+def scale(points, sx, sy):
+    return [(x * sx, y * sy) for x, y in points]
+
+# --- Выполнение цепочки преобразований согласно условию ---
+# Исходный квадрат
+square = [(0, 0), (2, 0), (2, 2), (0, 2)]
+
+# 1. Масштабирование в 1.5 раза
+scaled = scale(square, 1.5, 1.5)
+
+# 2. Поворот на 45 градусов вокруг начала координат
+rotated = rotate(scaled, 45)
+
+# 3. Сдвиг (перенос) на вектор (5, 3)
+final_result = translate(rotated, 5, 3)
+
+# Округление результатов для наглядности вывода
+def round_pts(pts):
+    return [(round(x, 4), round(y, 4)) for x, y in pts]
+
+print("1. Исходный квадрат:", square)
+print("2. После масштабирования:", round_pts(scaled))
+print("3. После поворота (промежуточные):", round_pts(rotated))
+print("4. Конечные точки (после сдвига):", round_pts(final_result))
