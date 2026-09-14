@@ -1029,3 +1029,95 @@ print(f"Полный граф: {chrom_complete}")
 print(f"Дерево: {chrom_tree}")
 print(f"Простой цикл Cn: {chrom_cycle}")
 
+
+import math
+
+# --- 2. Ввод графа с помощью матрицы смежности ---
+print("Введите матрицу смежности построчно (4 строки по 4 числа через пробел):")
+n = 4  # Вершины: 0=A, 1=B, 2=C, 3=D
+labels = ['A', 'B', 'C', 'D']
+
+adj_matrix = []
+for i in range(n):
+    row = list(map(int, input().split()))
+    adj_matrix.append(row)
+
+# Собираем список всех ребер графа (без дубликатов для неориентированного графа)
+edges = []
+for i in range(n):
+    for j in range(i + 1, n):
+        if adj_matrix[i][j] == 1:
+            edges.append((i, j))
+
+# Спрашиваем обозначения ребер (как просят в пункте 3)
+print("\nВведите обозначения для ребер через пробел")
+print(f"Всего ребер в графе: {len(edges)} шт.")
+print("Пример ввода: e1 e2 e3 e4 e5")
+edge_labels = input().split()
+
+# Если ввели меньше/больше, дополняем стандартными именами e1, e2...
+if len(edge_labels) != len(edges):
+    edge_labels = [f"e{i+1}" for i in range(len(edges))]
+
+
+# --- 3. Вывод матрицы инцидентности ---
+print("\n--- 3. Матрица инцидентности ---")
+# Печать шапки таблицы (названия ребер)
+print("   " + " ".join(f"{label:4}" for label in edge_labels))
+
+inc_matrix = []
+for i in range(n):
+    row_inc = []
+    for e in edges:
+        # 1 если вершина i принадлежит ребру e, иначе 0
+        if i == e[0] or i == e[1]:
+            row_inc.append(1)
+        else:
+            row_inc.append(0)
+    inc_matrix.append(row_inc)
+    # Печать строки матрицы с меткой вершины
+    print(f"{labels[i]}: " + " ".join(f"{val:4}" for val in row_inc))
+
+
+# --- 4. Вывод матрицы Кирхгофа ---
+print("\n--- 4. Матрица Кирхгофа ---")
+kirchhoff_matrix = []
+for i in range(n):
+    row_kirchhoff = []
+    degree = sum(adj_matrix[i]) # Степень вершины (число связей)
+    for j in range(n):
+        if i == j:
+            row_kirchhoff.append(degree)
+        else:
+            row_kirchhoff.append(-adj_matrix[i][j])
+    kirchhoff_matrix.append(row_kirchhoff)
+    print(" ".join(f"{val:3}" for val in row_kirchhoff))
+
+
+# --- 5. Вывод эксцентриситета и радиуса графа ---
+print("\n--- 5. Метрические характеристики ---")
+
+# Алгоритм Флойда-Уоршелла для поиска кратчайших путей между всеми парами вершин
+dist = [[math.inf] * n for _ in range(n)]
+for i in range(n):
+    dist[i][i] = 0
+    for j in range(n):
+        if adj_matrix[i][j] == 1:
+            dist[i][j] = 1
+
+for k in range(n):
+    for i in range(n):
+        for j in range(n):
+            if dist[i][k] + dist[k][j] < dist[i][j]:
+                dist[i][j] = dist[i][k] + dist[k][j]
+
+# Расчет эксцентриситетов
+eccentricities = {}
+for i in range(n):
+    max_d = max(dist[i])
+    eccentricities[labels[i]] = int(max_d)
+    print(f"Эксцентриситет вершины {labels[i]}: {int(max_d)}")
+
+# Радиус графа — это минимальный из эксцентриситетов
+radius = min(eccentricities.values())
+print(f"Радиус графа: {radius}")
