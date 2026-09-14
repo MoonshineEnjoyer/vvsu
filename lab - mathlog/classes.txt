@@ -992,3 +992,40 @@ possible, reason = check_graphical(deg_seq)
 print(reason)
 
 
+
+
+# 1. Ввод количества вершин для каждого графа
+v_empty = int(input("Введите количество вершин для пустого графа: "))
+v_complete = int(input("Введите количество вершин для полного графа: "))
+v_tree = int(input("Введите количество вершин для дерева: "))
+v_cycle = int(input("Введите количество вершин для простого цикла Cn (>= 3): "))
+
+# 2. Логика определения хроматического числа
+
+# Пустой граф
+chrom_empty = 1 if v_empty > 0 else 0
+
+# Полный граф
+chrom_complete = v_complete
+
+# Дерево
+if v_tree <= 0:
+    chrom_tree = 0
+elif v_tree == 1:
+    chrom_tree = 1
+else:
+    chrom_tree = 2
+
+# Простой цикл Cn (по определению цикла n должен быть >= 3)
+if v_cycle < 3:
+    chrom_cycle = "Некорректный цикл (нужно >= 3 вершин)"
+else:
+    chrom_cycle = 2 if v_cycle % 2 == 0 else 3
+
+# 3. Вывод результатов в консоль
+print("\n--- Хроматические числа графов ---")
+print(f"Пустой граф: {chrom_empty}")
+print(f"Полный граф: {chrom_complete}")
+print(f"Дерево: {chrom_tree}")
+print(f"Простой цикл Cn: {chrom_cycle}")
+
