@@ -929,3 +929,18 @@ for _ in range(n):
             dist[v] = dist[u] + weight
 
 print("Вес кратчайшего расстояния между A и E:", dist[end])
+
+
+
+# Ввод количества вершин
+v_complete = int(input("Введите количество вершин для полного графа: "))
+v_tree = int(input("Введите количество вершин для дерева: "))
+
+# Расчет количества рёбер по формулам
+edges_complete = (v_complete * (v_complete - 1)) // 2
+edges_tree = v_tree - 1
+
+# Вывод результатов
+print(f"Количество ребер в полном графе: {edges_complete}")
+print(f"Количество ребер в дереве: {edges_tree}")
+
