@@ -1121,3 +1121,36 @@ for i in range(n):
 # Радиус графа — это минимальный из эксцентриситетов
 radius = min(eccentricities.values())
 print(f"Радиус графа: {radius}")
+
+
+
+
+import matplotlib.pyplot as plt
+import networkx as nx
+
+# Создаем классический граф Петерсена (10 вершин, 15 ребер)
+G = nx.petersen_graph()
+
+# Настраиваем размер окна для двух графиков
+plt.figure(figsize=(12, 6))
+
+# --- ЛЕВЫЙ ГРАФ (Задание 2.1) ---
+plt.subplot(121)
+plt.title("Левый граф (2.1)")
+# В центре (первое кольцо) — узлы 9 и 8
+# Снаружи (второе кольцо) — узлы в порядке обхода по часовой стрелке
+nlist_left = [[9, 8], [0, 1, 5, 7, 2, 3, 4, 6]]
+nx.draw_shell(G, nlist=nlist_left, with_labels=True, node_color='skyblue', node_size=500)
+
+# --- ПРАВЫЙ ГРАФ (Задание 2.1) ---
+plt.subplot(122)
+plt.title("Правый граф (2.1)")
+# В центре — узлы от 9 до 5 по часовой стрелке
+# Снаружи — узлы от 4 до 0 по часовой стрелке
+nlist_right = [[9, 8, 7, 6, 5], [4, 3, 2, 1, 0]]
+nx.draw_shell(G, nlist=nlist_right, with_labels=True, node_color='skyblue', node_size=500)
+
+# Отображаем результат
+plt.tight_layout()
+plt.show()
+
